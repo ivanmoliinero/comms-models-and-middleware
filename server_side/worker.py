@@ -6,8 +6,11 @@ TODO: As of now, redis/db is not used, integrate later.
 """
 
 import pika
-import time
-
+import os
+# Obtain RabbitMQ host:
+#  - Configured in environment in EC2 instance in AWS cloud.
+#  - Fallback to localhost to enable local testing.
+rabbitmq_host = os.environ.get('RABBITMQ_HOST', 'localhost')
 
 QUEUE_NAME='ticket.requests'
 EXCHANGE_NAME='ticket.acquisition'
@@ -39,8 +42,7 @@ def start_worker():
     """
     Initializes the RabbitMQ connection and starts the consumption loop.
     """
-    # Replace 'localhost' with the IP or DNS of your RabbitMQ server
-    parameters = pika.ConnectionParameters(host='localhost')
+    parameters = pika.ConnectionParameters(host=rabbitmq_host)
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 

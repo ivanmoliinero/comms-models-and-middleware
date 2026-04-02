@@ -7,6 +7,10 @@ import pika
 import multiprocessing
 import os
 
+# Obtain RabbitMQ host:
+#  - Configured in environment in EC2 instance in AWS cloud.
+#  - Fallback to localhost to enable local testing.
+rabbitmq_host = os.environ.get('RABBITMQ_HOST', 'localhost')
 
 QUEUE_NAME='ticket.requests'
 EXCHANGE_NAME='ticket.acquisition'
@@ -19,8 +23,7 @@ def client_worker_publisher(lines_chunk, local_barrier):
     and publishes.
     """
     # 1. Each process must open its own connection to RabbitMQ
-    # TODO: Replace localhost when using EC2 instances.
-    parameters = pika.ConnectionParameters(host='localhost')
+    parameters = pika.ConnectionParameters(host=rabbitmq_host)
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
