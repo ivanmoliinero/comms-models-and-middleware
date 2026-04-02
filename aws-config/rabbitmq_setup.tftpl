@@ -1,0 +1,36 @@
+#!/bin/bash
+# Update the system packages
+yum update -y
+
+# Install Docker
+yum install docker -y
+
+# Start and enable the Docker service to run on boot
+systemctl start docker
+systemctl enable docker
+
+# Add the default user to the Docker group
+usermod -aG docker ec2-user
+
+# Define the RabbitMQ configuration variables
+# The Erlang cookie is strictly required to be identical across all nodes for clustering
+ERLANG_COOKIE="injected_shared_cookie_string"
+RABBITMQ_USER="admin"
+RABBITMQ_PASS="admin123"
+
+# Run the RabbitMQ container with the management plugin
+# Port 5672: AMQP protocol for clients and workers
+# Port 15672: Management UI
+# Ports 4369, 25672: Required for internal cluster communication
+docker run -d \
+  --name rabbitmq-server \
+  --restart always \
+  --hostname $(hostname) \
+  -p 5672:5672 \
+  -p 15672:15672 \
+  -p 4369:4369 \
+  -p 25672:25672 \
+  -e RABBITMQ_ERLANG_COOKIE=$ERLANG_COOKIE \
+  -e RABBITMQ_DEFAULT_USER=$RABBITMQ_USER \
+  -e RABBITMQ_DEFAULT_PASS=$RABBITMQ_PASS \
+  rabbitmq:3-management

@@ -1,0 +1,29 @@
+#!/bin/bash
+# Update the system packages
+yum update -y
+
+# Install Git and Python3 Pip
+yum install git -y
+yum install python3-pip -y
+
+REPO_URL="https://github.com/ivanmoliinero/comms-models-and-middleware.git"
+TARGET_DIR="/home/ec2-user/comms-models-and-middleware"
+
+# Clone the repository into the ec2-user home directory
+cd /home/ec2-user
+git clone $REPO_URL
+
+cd $TARGET_DIR
+git checkout indirect-quorum-queue # TODO: change for final version
+
+# Grant ownership of the cloned directory to the ec2-user
+chown -R ec2-user:ec2-user $TARGET_DIR
+
+# Set up a Python virtual environment as ec2-user
+su - ec2-user -c "cd $TARGET_DIR && python3 -m venv venv"
+
+# Install dependencies inside the virtual environment
+su - ec2-user -c "cd $TARGET_DIR && source venv/bin/activate && pip install -r requirements.txt"
+
+# Run worker.py script in the background using nohup to prevent blocking cloud-init
+su - ec2-user -c "cd $TARGET_DIR && source venv/bin/activate && nohup python -m client_side.programatic_client > worker.log 2>&1 &"

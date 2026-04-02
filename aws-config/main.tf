@@ -98,19 +98,29 @@ resource "aws_instance" "rabbitmq_nodes" {
   subnet_id              = aws_subnet.custom_subnet.id
   vpc_security_group_ids = [aws_security_group.custom_sg.id]
 
+  # Prefab key of labs
+  key_name               = "vockey"
+
+  user_data = "rabbitmq_setup.tftpl"
+
   tags = {
     Name = "task1-RabbitMQ-Node-${count.index + 1}"
     Role = "MessageBroker"
   }
 }
 
-# 2 EC2 Instances for Publisher Clients
+# 1 EC2 Instance for Publisher Clients
 resource "aws_instance" "publisher_nodes" {
-  count                  = 2
+  count                  = 1
   ami                    = var.ec2_ami_id
   instance_type          = var.ec2_instance_type
   subnet_id              = aws_subnet.custom_subnet.id
   vpc_security_group_ids = [aws_security_group.custom_sg.id]
+
+  # Prefab key of labs
+  key_name               = "vockey"
+
+  user_data = templatefile("client_setup.tftpl")
 
   tags = {
     Name = "task1-Publisher-Client-${count.index + 1}"
@@ -125,6 +135,11 @@ resource "aws_instance" "worker_nodes" {
   instance_type          = var.ec2_instance_type
   subnet_id              = aws_subnet.custom_subnet.id
   vpc_security_group_ids = [aws_security_group.custom_sg.id]
+
+  # Prefab key of labs
+  key_name               = "vockey"
+
+  user_data = templatefile("worker_setup.tftpl")
 
   tags = {
     Name = "task1-Worker-Node-${count.index + 1}"
