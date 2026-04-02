@@ -77,6 +77,46 @@ resource "aws_security_group" "custom_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+ # RabbitMQ AMQP port for clients and workers
+  ingress {
+    description = "AMQP protocol"
+    from_port   = 5672
+    to_port     = 5672
+    protocol    = "tcp"
+    # Allows traffic only from within the VPC
+    cidr_blocks = [aws_vpc.custom_vpc.cidr_block]
+  }
+
+  # RabbitMQ Management UI
+  ingress {
+    description = "Management UI"
+    from_port   = 15672
+    to_port     = 15672
+    protocol    = "tcp"
+    # Currently open to the internet to allow browser access
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Erlang Port Mapper Daemon for cluster node discovery
+  ingress {
+    description = "Erlang Port Mapper Daemon"
+    from_port   = 4369
+    to_port     = 4369
+    protocol    = "tcp"
+    # Allows traffic only from within the VPC
+    cidr_blocks = [aws_vpc.custom_vpc.cidr_block]
+  }
+
+  # RabbitMQ inter-node communication for clustering
+  ingress {
+    description = "RabbitMQ cluster communication"
+    from_port   = 25672
+    to_port     = 25672
+    protocol    = "tcp"
+    # Allows traffic only from within the VPC
+    cidr_blocks = [aws_vpc.custom_vpc.cidr_block]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -120,7 +160,12 @@ resource "aws_instance" "publisher_nodes" {
   # Prefab key of labs
   key_name               = "vockey"
 
-  user_data = templatefile("client_setup.tftpl")
+  # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
+  depends_on = [aws_instance.rabbitmq_nodes]
+
+  user_data = templatefile("client_setup.tftpl", {
+    rabbitmq_host = aws_instance.rabbitmq_nodes[0].private_ip
+  })
 
   tags = {
     Name = "task1-Publisher-Client-${count.index + 1}"
@@ -139,10 +184,22 @@ resource "aws_instance" "worker_nodes" {
   # Prefab key of labs
   key_name               = "vockey"
 
-  user_data = templatefile("worker_setup.tftpl")
+  # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
+  depends_on = [aws_instance.rabbitmq_nodes]
+
+  # The RabbitMQ accessed server will be the first one, won't do load balancing for now.
+  user_data = templatefile("worker_setup.tftpl", {
+    rabbitmq_host = aws_instance.rabbitmq_nodes[0].private_ip
+  })
 
   tags = {
     Name = "task1-Worker-Node-${count.index + 1}"
     Role = "Worker"
   }
+}
+
+# Output the Public IPs for the RabbitMQ Management UI
+output "rabbitmq_management_urls" {
+  value       = [for instance in aws_instance.rabbitmq_nodes : "http://${instance.public_ip}:15672"]
+  description = "URLs to access the RabbitMQ Management UI from your browser"
 }

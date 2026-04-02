@@ -11,6 +11,7 @@ import time
 
 QUEUE_NAME='ticket.requests'
 EXCHANGE_NAME='ticket.acquisition'
+counter=0
 
 
 def process_message(ch, method, properties, body):
@@ -24,9 +25,11 @@ def process_message(ch, method, properties, body):
     # Simulate processing time.
     # The Redis connection and data handling logic will go here.
     # TODO: INCLUDE REAL PROCESSING WITH BACKEND!!!
-    time.sleep(0.1)
+    global counter
+    counter += 1
+    #time.sleep(0.1)
 
-    print(f"[*] Successfully processed request. Sending ACK...")
+    print(f"[*] Successfully processed request. Total processed: {counter}")
 
     # Explicit manual ACK.
     ch.basic_ack(delivery_tag=method.delivery_tag)

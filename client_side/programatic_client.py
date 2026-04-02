@@ -62,7 +62,7 @@ if __name__ == '__main__':
         lines = [line.strip() for line in f if line.strip()]
 
     # Use the number of logical cores available on the machine
-    num_processes = os.cpu_count()
+    num_processes = 1
 
     # Create the barrier to synchronize the exact start of the publishing
     barrier = multiprocessing.Barrier(num_processes)
