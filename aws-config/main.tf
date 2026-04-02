@@ -41,6 +41,8 @@ resource "aws_subnet" "custom_subnet" {
   tags = {
     Name = "task1-subnet"
   }
+
+  availability_zone = "us-east-1a"
 }
 
 # Route Table definition
@@ -130,21 +132,47 @@ resource "aws_security_group" "custom_sg" {
 }
 
 # EC2 Instance definition
-# 3 EC2 Instances for RabbitMQ Cluster (Quorum Queue)
-resource "aws_instance" "rabbitmq_nodes" {
-  count                  = 3
+# 1 EC2 instance for main RabbitMQ server
+resource "aws_instance" "rabbitmq_primary" {
+  count                  = 1
   ami                    = var.ec2_ami_id
-  instance_type          = var.ec2_instance_type
+  instance_type          = var.ec2_rabbit_mq_node
   subnet_id              = aws_subnet.custom_subnet.id
   vpc_security_group_ids = [aws_security_group.custom_sg.id]
 
   # Prefab key of labs
   key_name               = "vockey"
 
-  user_data = "rabbitmq_setup.tftpl"
+  user_data = templatefile("rabbitmq_setup.tftpl", {})
 
   tags = {
-    Name = "task1-RabbitMQ-Node-${count.index + 1}"
+    Name = "task1-RabbitMQ-Primary-Node"
+    Role = "MessageBroker"
+  }
+}
+
+# 2 EC2 Instances for RabbitMQ Cluster (Quorum Queue)
+# (3 total instances)
+resource "aws_instance" "rabbitmq_nodes" {
+  count                  = 2
+  ami                    = var.ec2_ami_id
+  instance_type          = var.ec2_rabbit_mq_node
+  subnet_id              = aws_subnet.custom_subnet.id
+  vpc_security_group_ids = [aws_security_group.custom_sg.id]
+
+  # Strictly wait for the primary node to be provisioned first
+  depends_on = [aws_instance.rabbitmq_primary]
+
+  # Prefab key of labs
+  key_name               = "vockey"
+
+  # They need private IP of main node in order to be setup.
+  user_data = templatefile("rabbitmq_secondary_setup.tftpl", {
+    primary_ip = aws_instance.rabbitmq_primary[0].private_ip
+  })
+
+  tags = {
+    Name = "task1-RabbitMQ-Secondary-Node-${count.index + 1}"
     Role = "MessageBroker"
   }
 }
@@ -161,10 +189,10 @@ resource "aws_instance" "publisher_nodes" {
   key_name               = "vockey"
 
   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
-  depends_on = [aws_instance.rabbitmq_nodes]
+  depends_on = [aws_instance.rabbitmq_primary]
 
   user_data = templatefile("client_setup.tftpl", {
-    rabbitmq_host = aws_instance.rabbitmq_nodes[0].private_ip
+    rabbitmq_host = aws_instance.rabbitmq_primary[0].private_ip
   })
 
   tags = {
@@ -185,11 +213,11 @@ resource "aws_instance" "worker_nodes" {
   key_name               = "vockey"
 
   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
-  depends_on = [aws_instance.rabbitmq_nodes]
+  depends_on = [aws_instance.rabbitmq_primary]
 
   # The RabbitMQ accessed server will be the first one, won't do load balancing for now.
   user_data = templatefile("worker_setup.tftpl", {
-    rabbitmq_host = aws_instance.rabbitmq_nodes[0].private_ip
+    rabbitmq_host = aws_instance.rabbitmq_primary[0].private_ip
   })
 
   tags = {
@@ -199,7 +227,7 @@ resource "aws_instance" "worker_nodes" {
 }
 
 # Output the Public IPs for the RabbitMQ Management UI
-output "rabbitmq_management_urls" {
-  value       = [for instance in aws_instance.rabbitmq_nodes : "http://${instance.public_ip}:15672"]
+output "rabbitmq_main_node_management_url" {
+  value       = ["http://${aws_instance.rabbitmq_primary[0].public_ip}:15672"]
   description = "URLs to access the RabbitMQ Management UI from your browser"
 }

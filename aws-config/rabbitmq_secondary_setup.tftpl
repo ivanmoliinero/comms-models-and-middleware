@@ -42,3 +42,16 @@ while ! docker exec rabbitmq-server rabbitmqctl status > /dev/null 2>&1; do
   sleep 5
 done
 docker ps -a
+
+# SECONDARY NODES CONFIGURATION: join cluster of primary node of RabbitMQ.
+# Convert the injected IP (e.g., 10.0.0.25) to AWS short hostname format (e.g., ip-10-0-0-25)
+PRIMARY_IP="${primary_ip}"
+PRIMARY_HOSTNAME="ip-$(echo $PRIMARY_IP | tr '.' '-')"
+
+echo "This is a secondary node. Joining cluster at rabbit@$PRIMARY_HOSTNAME..."
+
+# Execute the cluster join commands
+docker exec rabbitmq-server rabbitmqctl stop_app
+docker exec rabbitmq-server rabbitmqctl reset
+docker exec rabbitmq-server rabbitmqctl join_cluster rabbit@$PRIMARY_HOSTNAME
+docker exec rabbitmq-server rabbitmqctl start_app
