@@ -7,6 +7,9 @@ import pika
 import multiprocessing
 import argparse
 
+RABBITMQ_USER="admin"
+RABBITMQ_PASS="admin123"
+
 # Initialize the argument parser
 parser = argparse.ArgumentParser(description="RabbitMQ connection script.")
 
@@ -35,7 +38,9 @@ def client_worker_publisher(lines_chunk, local_barrier):
     and publishes.
     """
     # 1. Each process must open its own connection to RabbitMQ
-    parameters = pika.ConnectionParameters(host=rabbitmq_host)
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+    parameters = pika.ConnectionParameters(host=rabbitmq_host,
+                                           credentials=credentials)
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
