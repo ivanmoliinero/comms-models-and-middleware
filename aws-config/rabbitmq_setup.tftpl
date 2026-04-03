@@ -42,3 +42,10 @@ while ! docker exec rabbitmq-server rabbitmqctl status > /dev/null 2>&1; do
   sleep 5
 done
 docker ps -a
+
+# Once finish, indicate through Nginx
+yum install nginx -y
+systemctl start nginx
+systemctl enable nginx
+
+echo "Ready" > /usr/share/nginx/html/index.html

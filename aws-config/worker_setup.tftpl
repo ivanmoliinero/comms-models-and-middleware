@@ -1,8 +1,19 @@
 #!/bin/bash
+# Set RABBITMQ_HOST
+RABBITMQ_HOST=${rabbitmq_host}
+
+# Wait for main service of RabbitMQ to be up
+# We use --connect-timeout and --max-time to force curl to fail fast if the connection hangs
+until curl -s -f --connect-timeout 5 --max-time 10 "http://$RABBITMQ_HOST"; do
+  echo "Waiting for RabbitMQ main server to complete its setup..."
+  sleep 10
+done
+echo "Done!"
+
 # Update the system packages
 yum update -y
 
-# Install Git and Python3 Pip
+# Install Git, Python3 Pip and NC tool to ensure connectivity.
 yum install git -y
 yum install python3-pip -y
 
@@ -16,15 +27,10 @@ git clone $REPO_URL
 cd $TARGET_DIR
 git checkout indirect-quorum-queue # TODO: change for final version
 
-# Grant ownership of the cloned directory to the ec2-user
-chown -R ec2-user:ec2-user $TARGET_DIR
+# Virtual Python env + packages installation
+python3 -m venv /home/ec2-user/venv
 
-# Set up a Python virtual environment as ec2-user
-su - ec2-user -c "cd $TARGET_DIR && python3 -m venv venv"
+/home/ec2-user/venv/bin/pip install --upgrade pip
+/home/ec2-user/venv/bin/pip install -r $TARGET_DIR/requirements.txt
 
-# Install dependencies inside the virtual environment
-su - ec2-user -c "cd $TARGET_DIR && source venv/bin/activate && pip install -r requirements.txt"
-
-# Run worker.py script in the background using nohup to prevent blocking cloud-init
-# Will use rabbitmq_host obtained from Terraform injection with dependencies.
-su - ec2-user -c "cd $TARGET_DIR && source venv/bin/activate && export RABBITMQ_HOST=${rabbitmq_host} && nohup python -m server_side.worker > worker.log 2>&1 &"
+su - ec2-user -c "nohup /home/ec2-user/venv/bin/python3 $TARGET_DIR/server_side/worker.py --rabbitmq-host $RABBITMQ_HOST > /home/ec2-user/worker.log 2>&1 &"

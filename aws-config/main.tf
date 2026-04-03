@@ -119,6 +119,15 @@ resource "aws_security_group" "custom_sg" {
     cidr_blocks = [aws_vpc.custom_vpc.cidr_block]
   }
 
+  # HTTP internal comms to obtain state of RabbitMQ servers
+  ingress {
+    description = "Allow HTTP traffic on port 80 for Nginx cloud-init check"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.custom_vpc.cidr_block]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0

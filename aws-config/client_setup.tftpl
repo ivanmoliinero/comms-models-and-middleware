@@ -27,4 +27,4 @@ su - ec2-user -c "cd $TARGET_DIR && source venv/bin/activate && pip install -r r
 
 # Run worker.py script in the background using nohup to prevent blocking cloud-init
 # Will use rabbitmq_host obtained from Terraform injection with dependencies.
-su - ec2-user -c "cd $TARGET_DIR && source venv/bin/activate && export RABBITMQ_HOST=${rabbitmq_host} && nohup python -m client_side.programatic_client > worker.log 2>&1 &"
+su - ec2-user -c "cd $TARGET_DIR && source venv/bin/activate && export RABBITMQ_HOST=${rabbitmq_host} && nohup python -m client_side.programatic_client --rabbitmq-host $RABBITMQ_HOST > worker.log 2>&1 &"
