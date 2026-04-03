@@ -1,14 +1,14 @@
-This run-book describes the process of launching the designed tickets selling system **locally**.
-
-> [!danger]
-> Remember to **remove the resource limits** configurations upon deploying this system non-locally.
-# Redis
+> [!warning]
+> This experiment has been performed under lab conditions, so bear in mind that **resource limits** have been applied to every component if it.
+# Other preparations
 1. Creating the containers network
 ```shell
 docker network create redis-test-net
 ```
 
-2. Creating the container
+# Redis
+
+1. Creating the container
 ```shell
 docker run -d \
   --name redis-server-test \
@@ -18,12 +18,12 @@ docker run -d \
   redis:latest
 ```
 
-3. Load the function to Redis
+2. Load the function to Redis
 ```redis-cli
 FUNCTION LOAD REPLACE "#!lua name=ticket_sales\nredis.register_function('buy_ticket', function(keys, args)\n  if redis.call('SISMEMBER', keys[1], args[1]) == 1 then\n    return -1\n  else\n    local ticket_number = tonumber(redis.call('DECR', keys[2]))\n    if ticket_number < 0 then\n      return -2\n    else\n      redis.call('SADD', keys[1], args[1])\n      return ticket_number\n    end\n  end\nend)"
 ```
 
-4. Set the initial state of the database
+3. Set the initial state of the database
 ```redis-cli
 DEL purchased_tracking_ids
 SET tickets-counter 20000
