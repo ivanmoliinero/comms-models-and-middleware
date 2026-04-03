@@ -8,6 +8,9 @@ TODO: As of now, redis/db is not used, integrate later.
 import pika
 import argparse
 
+RABBITMQ_USER="admin"
+RABBITMQ_PASS="admin123"
+
 # Initialize the argument parser
 parser = argparse.ArgumentParser(description="RabbitMQ connection script.")
 
@@ -55,7 +58,9 @@ def start_worker():
     """
     Initializes the RabbitMQ connection and starts the consumption loop.
     """
-    parameters = pika.ConnectionParameters(host=rabbitmq_host)
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+    parameters = pika.ConnectionParameters(host=rabbitmq_host,
+                                           credentials=credentials)
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
