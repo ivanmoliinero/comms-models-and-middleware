@@ -61,3 +61,39 @@ curl -i "http://localhost:8080/buy?ticket_id=client-uuid-001"
 # client 2: first purchase
 curl -i "http://localhost:8080/buy?ticket_id=client-uuid-002"
 ```
+
+This is the **expected outcome**:
+```bash
+curl -i "http://localhost:8080/buy?ticket_id=client-uuid-001"
+# output
+HTTP/1.1 200 OK
+Server: openresty/1.29.2.3
+Date: Fri, 03 Apr 2026 18:53:13 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+
+{"ticket_number":19999,"status":"success"}
+# ----------------------------
+curl -i "http://localhost:8080/buy?ticket_id=client-uuid-001"
+# output
+HTTP/1.1 409 Conflict
+Server: openresty/1.29.2.3
+Date: Fri, 03 Apr 2026 18:56:18 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+
+{"message":"Ticket already purchased with this ID","status":"error"}
+# ----------------------------
+curl -i "http://localhost:8080/buy?ticket_id=client-uuid-002"
+# output
+HTTP/1.1 200 OK
+Server: openresty/1.29.2.3
+Date: Fri, 03 Apr 2026 18:56:23 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+
+{"ticket_number":19998,"status":"success"}
+```
