@@ -35,3 +35,10 @@ variable "ec2_rabbit_mq_node" {
   description = "The EC2 instance type for RabbitMQ servers."
   default     = "t3.small"
 }
+
+# The Redis nodes will have more resources than client or worker nodes who rely totally on them.
+variable "ec2_redis_node" {
+  type        = string
+  description = "The EC2 instance type for RabbitMQ servers."
+  default     = "t3.small"
+}

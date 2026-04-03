@@ -1,0 +1,42 @@
+#!/bin/bash
+# Update the system packages
+yum update -y
+
+# Install Docker
+yum install docker -y
+
+# Start and enable the Docker service to run on boot
+systemctl start docker
+systemctl enable docker
+
+# Add the default user to the Docker group
+usermod -aG docker ec2-user
+
+# Define the Redis configuration variables
+REDIS_PASS="admin123"
+
+# Run the Redis container
+# Port 6379: Default Redis port for client connections
+docker run -d \
+  --name redis-server \
+  --restart always \
+  --hostname $(hostname) \
+  -p 6379:6379 \
+  redis:latest \
+  redis-server --requirepass $REDIS_PASS
+
+# Wait loop: Blocks execution until the Redis application inside the container is fully running
+echo "Waiting for Redis container to initialize..."
+# The ping command will return "PONG" when the server is ready to accept connections
+while ! docker exec redis-server redis-cli -a $REDIS_PASS ping | grep -q "PONG"; do
+  echo "Waiting for Redis container to initialize..."
+  sleep 5
+done
+docker ps -a
+
+# Once finish, indicate through Nginx
+yum install nginx -y
+systemctl start nginx
+systemctl enable nginx
+
+echo "Ready" > /usr/share/nginx/html/index.html

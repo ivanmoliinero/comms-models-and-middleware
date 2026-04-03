@@ -6,15 +6,19 @@ TODO: As of now, redis/db is not used, integrate later.
 """
 
 import pika
+import redis
 import argparse
 
 RABBITMQ_USER="admin"
 RABBITMQ_PASS="admin123"
+REDIS_PASS="admin123"
+MAX_TICKETS=20000
+COUNTER_VAR='ticket_counter'
 
 # Initialize the argument parser
-parser = argparse.ArgumentParser(description="RabbitMQ connection script.")
+parser = argparse.ArgumentParser(description="RabbitMQ and Redis connection script.")
 
-# Define the argument with 'localhost' as the default fallback value
+# Define the argument with 'localhost' as the default fallback value for RabbitMQ
 parser.add_argument(
     '--rabbitmq-host',
     type=str,
@@ -22,15 +26,27 @@ parser.add_argument(
     help='Host address for RabbitMQ'
 )
 
+# Define the argument with 'localhost' as the default fallback value for Redis
+parser.add_argument(
+    '--redis-host',
+    type=str,
+    default='localhost',
+    help='Host address for Redis'
+)
+
 # Parse the command-line arguments
 args, unknown = parser.parse_known_args()
 
-# Obtain RabbitMQ host from the parsed arguments
+# Obtain hosts from the parsed arguments
 rabbitmq_host = args.rabbitmq_host
+redis_host = args.redis_host
 
 QUEUE_NAME='ticket.requests'
 EXCHANGE_NAME='ticket.acquisition'
-counter=0
+
+# client redis variable
+client: redis.Redis
+auto_incr: redis.commands.core.Script
 
 
 def process_message(ch, method, properties, body):
@@ -43,21 +59,21 @@ def process_message(ch, method, properties, body):
 
     # Simulate processing time.
     # The Redis connection and data handling logic will go here.
-    # TODO: INCLUDE REAL PROCESSING WITH BACKEND!!!
-    global counter
-    counter += 1
-    #time.sleep(0.1)
+    global auto_incr
+    result = auto_incr(keys=[COUNTER_VAR], args=[MAX_TICKETS])
 
-    print(f"[*] Successfully processed request. Total processed: {counter}")
+    # TODO: Where to store metrics of accepted and erased???
 
-    # Explicit manual ACK.
+    # Explicit manual ACK when op is completed.
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
 def start_worker():
     """
-    Initializes the RabbitMQ connection and starts the consumption loop.
+    Initializes the RabbitMQ and Redis connection and starts the consumption
+    loop.
     """
+    # RABBITMQ CONNECTION
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
     parameters = pika.ConnectionParameters(host=rabbitmq_host,
                                            credentials=credentials)
@@ -82,6 +98,21 @@ def start_worker():
         on_message_callback=process_message,
         auto_ack=False
     )
+
+    # Redis connection
+    global client
+    client = redis.Redis(
+        host=redis_host,
+        port=6379,
+        password=REDIS_PASS,
+        decode_responses=True
+    )
+
+    with open('server_side/atomic_increment.lua', 'r') as file:
+        lua_script_content = file.read()
+
+    global auto_incr
+    auto_incr = client.register_script(lua_script_content)
 
     print(
         " [*] Worker is ready and waiting for messages. To exit press CTRL+C")

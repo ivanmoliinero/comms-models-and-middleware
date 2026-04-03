@@ -129,6 +129,15 @@ resource "aws_security_group" "custom_sg" {
     cidr_blocks = [aws_vpc.custom_vpc.cidr_block]
   }
 
+  # REDIS internal comms
+  ingress {
+    description = "Allow HTTP traffic on port 80 for Nginx cloud-init check"
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.custom_vpc.cidr_block]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -158,6 +167,25 @@ resource "aws_instance" "rabbitmq_primary" {
   tags = {
     Name = "task1-RabbitMQ-Primary-Node"
     Role = "MessageBroker"
+  }
+}
+
+# 1 EC2 instance for main Redis server.
+resource "aws_instance" "redis_primary" {
+  count                  = 1
+  ami                    = var.ec2_ami_id
+  instance_type          = var.ec2_redis_node
+  subnet_id              = aws_subnet.custom_subnet.id
+  vpc_security_group_ids = [aws_security_group.custom_sg.id]
+
+  # Prefab key of labs
+  key_name               = "vockey"
+
+  user_data = templatefile("redis_setup.tftpl", {})
+
+  tags = {
+    Name = "task1-Redis-Primary-Node"
+    Role = "StateStore"
   }
 }
 
@@ -199,11 +227,12 @@ resource "aws_instance" "worker_nodes" {
   key_name               = "vockey"
 
   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
-  depends_on = [aws_instance.rabbitmq_primary]
+  depends_on = [aws_instance.rabbitmq_primary, aws_instance.redis_primary]
 
   # The RabbitMQ accessed server will be the first one, won't do load balancing for now.
   user_data = templatefile("worker_setup.tftpl", {
-    rabbitmq_host = aws_instance.rabbitmq_primary[0].private_ip
+    rabbitmq_host = aws_instance.rabbitmq_primary[0].private_ip,
+    redis_host = aws_instance.redis_primary[0].private_ip
   })
 
   tags = {

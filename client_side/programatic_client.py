@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(description="RabbitMQ connection script.")
 parser.add_argument(
     '--rabbitmq-host',
     type=str,
-    default='3.92.204.239',
+    default='localhost',
     help='Host address for RabbitMQ'
 )
 
