@@ -32,7 +32,6 @@ SET tickets-counter 20000
 > [!tip]
 > These commands can be executed by running [[software-testing/redis-server/setup.sh]]
 # Gateway
-## [[software-testing/gateway/nginx.conf]]
 > [!important] Fine-tunning
 > Some values configured shall be set up in terms of the machine where the server runs on, such as:
 > - `worker_processes`
@@ -43,8 +42,8 @@ SET tickets-counter 20000
 docker run -d \
   --name openresty-gateway \
   --network redis-test-net \
-  --cpuset-cpus="1-4" \
-  --memory="2g" \
+  --cpuset-cpus="1" \
+  --memory="1g" \
   -p 8080:80 \
   -v $(pwd)/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro \
   openresty/openresty:latest
