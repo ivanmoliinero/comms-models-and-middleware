@@ -5,12 +5,24 @@ into RabbitMQ middleware (using a quorum replicated queue).
 
 import pika
 import multiprocessing
-import os
+import argparse
 
-# Obtain RabbitMQ host:
-#  - Configured in environment in EC2 instance in AWS cloud.
-#  - Fallback to localhost to enable local testing.
-rabbitmq_host = os.environ.get('RABBITMQ_HOST', 'localhost')
+# Initialize the argument parser
+parser = argparse.ArgumentParser(description="RabbitMQ connection script.")
+
+# Define the argument with 'localhost' as the default fallback value
+parser.add_argument(
+    '--rabbitmq-host',
+    type=str,
+    default='localhost',
+    help='Host address for RabbitMQ'
+)
+
+# Parse the command-line arguments
+args, unknown = parser.parse_known_args()
+
+# Obtain RabbitMQ host from the parsed arguments
+rabbitmq_host = args.rabbitmq_host
 
 QUEUE_NAME='ticket.requests'
 EXCHANGE_NAME='ticket.acquisition'
