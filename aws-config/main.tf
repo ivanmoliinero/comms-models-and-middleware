@@ -79,14 +79,15 @@ resource "aws_security_group" "custom_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
- # RabbitMQ AMQP port for clients and workers
+  # RabbitMQ AMQP port for clients and workers
+  # WARNING: Due to limitations given by specs and AWS lab, clients will be outside the VPC.
+  # TODO: Change to 5671 encrypted protocol + restrict permissions on clients.
   ingress {
     description = "AMQP protocol"
     from_port   = 5672
     to_port     = 5672
     protocol    = "tcp"
-    # Allows traffic only from within the VPC
-    cidr_blocks = [aws_vpc.custom_vpc.cidr_block]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   # RabbitMQ Management UI
@@ -186,29 +187,29 @@ resource "aws_instance" "rabbitmq_nodes" {
   }
 }
 
-# 1 EC2 Instance for Publisher Clients
-resource "aws_instance" "publisher_nodes" {
-  count                  = 1
-  ami                    = var.ec2_ami_id
-  instance_type          = var.ec2_instance_type
-  subnet_id              = aws_subnet.custom_subnet.id
-  vpc_security_group_ids = [aws_security_group.custom_sg.id]
-
-  # Prefab key of labs
-  key_name               = "vockey"
-
-  # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
-  depends_on = [aws_instance.rabbitmq_primary]
-
-  user_data = templatefile("client_setup.tftpl", {
-    rabbitmq_host = aws_instance.rabbitmq_primary[0].private_ip
-  })
-
-  tags = {
-    Name = "task1-Publisher-Client-${count.index + 1}"
-    Role = "Publisher"
-  }
-}
+# # 1 EC2 Instance for Publisher Clients
+# resource "aws_instance" "publisher_nodes" {
+#   count                  = 1
+#   ami                    = var.ec2_ami_id
+#   instance_type          = var.ec2_instance_type
+#   subnet_id              = aws_subnet.custom_subnet.id
+#   vpc_security_group_ids = [aws_security_group.custom_sg.id]
+#
+#   # Prefab key of labs
+#   key_name               = "vockey"
+#
+#   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
+#   depends_on = [aws_instance.rabbitmq_primary]
+#
+#   user_data = templatefile("client_setup.tftpl", {
+#     rabbitmq_host = aws_instance.rabbitmq_primary[0].private_ip
+#   })
+#
+#   tags = {
+#     Name = "task1-Publisher-Client-${count.index + 1}"
+#     Role = "Publisher"
+#   }
+# }
 
 # 3 EC2 Instances for Workers
 resource "aws_instance" "worker_nodes" {
