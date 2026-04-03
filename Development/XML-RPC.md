@@ -1,5 +1,6 @@
 ---
-software: XML-RPC
+type:
+  - communication-protocol
 ---
 > [!success] Pros
 > - #pro

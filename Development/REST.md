@@ -1,5 +1,8 @@
 ---
-software: REST
+type:
+  - architecture
+use:
+  - communication
 ---
 > [!success] Pros
 > - #pro

@@ -1,5 +1,8 @@
 ---
-software: pyro
+type:
+  - library
+  - middleware
+language: python
 ---
 > [!success] Pros
 > - #pro

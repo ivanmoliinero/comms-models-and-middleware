@@ -12,6 +12,20 @@
 > > [!answer]
 > > Pyro it's undoubtedly faster
 
+#decision Due to the increase in the number of layers in the system when using Pyro, REST has been decided to be the direct communication method by offering the interoperability and being faster than XML-RPC.
+##### Implementation
+The architectural and abstract design of the system [[direct-communication-design]] must be implement by choosing the software that will do the expected task, this section defines the elections made.
+
+Here are some possible stacks that were available to be chosen:
+- **Option 1:**
+	- *Load balancer*: HAProxy or [[Nginx]]
+	- *Gateway*: [[FastAPI]]
+- **Option 2*:
+	- *Load balancer*: HAProxy or [[Nginx]]
+	- *Gateway*: [[OpenResty]]
+
+[[FastAPI]] works on Python, so it requires a running environment, and also running over Python, that is not precisely known by being extremely fast. By the other hand OpenResty is made on purpose to build scalable high performance web services (among others), so without doing any benchmarks, the **Option 2** is preferred.
+
 ## Experiments
 > [!important] Hardware
 > The **hardware** used for every experiment is the following:
