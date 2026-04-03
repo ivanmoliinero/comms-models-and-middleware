@@ -9,6 +9,18 @@ import pika
 import redis
 import argparse
 
+lua_script = '''
+-- Script to increment atomically the redis counter for tickets.
+local current_value = tonumber(redis.call('GET', KEYS[1]) or '0')
+local max_value = tonumber(ARGV[1])
+
+if current_value < max_value then
+    return redis.call('INCR', KEYS[1])
+else
+    return -1
+end
+'''
+
 RABBITMQ_USER="admin"
 RABBITMQ_PASS="admin123"
 REDIS_PASS="admin123"
@@ -108,11 +120,8 @@ def start_worker():
         decode_responses=True
     )
 
-    with open('server_side/atomic_increment.lua', 'r') as file:
-        lua_script_content = file.read()
-
     global auto_incr
-    auto_incr = client.register_script(lua_script_content)
+    auto_incr = client.register_script(lua_script)
 
     print(
         " [*] Worker is ready and waiting for messages. To exit press CTRL+C")
