@@ -7,7 +7,6 @@ docker network create redis-test-net
 ```
 
 # Redis
-
 1. Creating the container
 ```shell
 docker run -d \
@@ -33,7 +32,7 @@ SET tickets-counter 20000
 > These commands can be executed by running [[software-testing/redis-server/setup.sh]]
 # Gateway
 > [!important] Fine-tunning
-> Some values configured shall be set up in terms of the machine where the server runs on, such as:
+> Some values configured in the [[software-testing/redis-openResty/gateway/nginx.conf]] file shall be set up in terms of the machine where the server runs on, such as:
 > - `worker_processes`
 > - `worker_connections`
 
@@ -49,7 +48,11 @@ docker run -d \
   openresty/openresty:latest
 ```
 
-#check Try to connect to the API Gateway
+> [!important]
+> The previous command must be run from the path that contains the [[software-testing/redis-openResty/gateway/nginx.conf]] file
+
+# Checks
+## Try to connect to the API Gateway
 ```bash
 # client 1: first purchase
 curl -i "http://localhost:8080/buy?ticket_id=client-uuid-001"
@@ -61,7 +64,7 @@ curl -i "http://localhost:8080/buy?ticket_id=client-uuid-001"
 curl -i "http://localhost:8080/buy?ticket_id=client-uuid-002"
 ```
 
-This is the **expected outcome**:
+### Expected
 ```bash
 curl -i "http://localhost:8080/buy?ticket_id=client-uuid-001"
 # output
