@@ -54,12 +54,12 @@ END_TIME_KEY='end_time'
 # Initialize the argument parser
 parser = argparse.ArgumentParser(description="RabbitMQ and Redis connection script.")
 
-# Define the argument with 'localhost' as the default fallback value for RabbitMQ
+# Define the argument for RabbitMQ expecting a comma-separated list of IPs
 parser.add_argument(
-    '--rabbitmq-host',
+    '--rabbitmq-hosts',
     type=str,
     default='localhost',
-    help='Host address for RabbitMQ'
+    help='Comma-separated host addresses for RabbitMQ nodes'
 )
 
 # Define the argument with 'localhost' as the default fallback value for Redis
@@ -74,7 +74,7 @@ parser.add_argument(
 args, unknown = parser.parse_known_args()
 
 # Obtain hosts from the parsed arguments
-rabbitmq_host = args.rabbitmq_host
+rabbitmq_host_list = args.rabbitmq_hosts.split(',')
 redis_host = args.redis_host
 
 QUEUE_NAME='ticket.requests'
@@ -145,15 +145,19 @@ def start_worker():
                   f"RabbitMQ at {rabbitmq_host}...")
             credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
 
-            # heartbeat ensures the connection is kept alive behind the NLB
-            parameters = pika.ConnectionParameters(
-                host=rabbitmq_host,
-                credentials=credentials,
-                heartbeat=60,
-                blocked_connection_timeout=300
-            )
+            endpoints = []
+            # Build the connection parameters for each host in the list
+            for rmq_host in rabbitmq_host_list:
+                param = pika.ConnectionParameters(
+                    host=rmq_host.strip(),
+                    credentials=credentials,
+                    heartbeat=60,
+                    blocked_connection_timeout=300
+                )
+                endpoints.append(param)
 
-            connection = pika.BlockingConnection(parameters)
+            # Pika will try to connect to endpoints[0], then endpoints[1], etc.
+            connection = pika.BlockingConnection(endpoints)
             channel = connection.channel()
 
             # Ensure the queue exists (this operation is idempotent)
