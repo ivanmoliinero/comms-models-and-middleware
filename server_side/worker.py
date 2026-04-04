@@ -2,20 +2,41 @@
 Workers of the ticketing system, who obtain the client's requests and
 process the tickets according to the source of truth of the
 consistency backend.
-TODO: As of now, redis/db is not used, integrate later.
 """
 
 import pika
 import redis
 import argparse
 
+# This script ensures consistency while measuring total time of processing.
 lua_script = '''
--- Script to increment atomically the redis counter for tickets.
+-- KEYS[1] = counter_key
+-- KEYS[2] = start_time_key
+-- KEYS[3] = end_time_key
+-- ARGV[1] = max_value
+
 local current_value = tonumber(redis.call('GET', KEYS[1]) or '0')
 local max_value = tonumber(ARGV[1])
 
+-- If this is the absolute first message being processed, record the start time
+if current_value == 0 then
+    -- TIME returns an array: [unix_seconds, microseconds]
+    local server_time = redis.call('TIME')
+    local timestamp_str = server_time[1] .. '.' .. server_time[2]
+    redis.call('SET', KEYS[2], timestamp_str)
+end
+
 if current_value < max_value then
-    return redis.call('INCR', KEYS[1])
+    local new_val = redis.call('INCR', KEYS[1])
+    
+    -- If this increment hits the max limit, record the end time
+    if new_val == max_value then
+        local server_time = redis.call('TIME')
+        local timestamp_str = server_time[1] .. '.' .. server_time[2]
+        redis.call('SET', KEYS[3], timestamp_str)
+    end
+    
+    return new_val
 else
     return -1
 end
@@ -26,6 +47,8 @@ RABBITMQ_PASS="admin123"
 REDIS_PASS="admin123"
 MAX_TICKETS=20000
 COUNTER_VAR='ticket_counter'
+START_TIME_KEY='start_time'
+END_TIME_KEY='end_time'
 
 # Initialize the argument parser
 parser = argparse.ArgumentParser(description="RabbitMQ and Redis connection script.")
@@ -72,7 +95,8 @@ def process_message(ch, method, properties, body):
     # Simulate processing time.
     # The Redis connection and data handling logic will go here.
     global auto_incr
-    result = auto_incr(keys=[COUNTER_VAR], args=[MAX_TICKETS])
+    result = auto_incr(keys=[COUNTER_VAR, START_TIME_KEY, END_TIME_KEY],
+                       args=[MAX_TICKETS])
 
     # TODO: Where to store metrics of accepted and erased???
 

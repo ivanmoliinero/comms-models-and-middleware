@@ -6,6 +6,7 @@ Single-threaded version.
 
 import pika
 import argparse
+import time
 
 RABBITMQ_USER="admin"
 RABBITMQ_PASS="admin123"
@@ -30,6 +31,10 @@ rabbitmq_host = args.rabbitmq_host
 QUEUE_NAME='ticket.requests'
 EXCHANGE_NAME='ticket.acquisition'
 
+start_time: float
+end_time: float
+connection: pika.adapters.blocking_connection.BlockingConnection
+channel: pika.adapters.blocking_connection.BlockingChannel
 
 def client_publisher(lines_list):
     """
@@ -40,7 +45,9 @@ def client_publisher(lines_list):
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
     parameters = pika.ConnectionParameters(host=rabbitmq_host,
                                            credentials=credentials)
+    global connection
     connection = pika.BlockingConnection(parameters)
+    global channel
     channel = connection.channel()
 
     # 2. Declare the quorum queue (idempotent operation)
@@ -52,6 +59,9 @@ def client_publisher(lines_list):
     channel.queue_bind(queue=QUEUE_NAME,
                        exchange=EXCHANGE_NAME,
                        routing_key=QUEUE_NAME)
+
+    global start_time
+    start_time = time.time()
 
     # 3. Burst publish the messages
     for line in lines_list:
@@ -65,7 +75,6 @@ def client_publisher(lines_list):
                 )
             )
 
-    connection.close()
 
 
 if __name__ == '__main__':
@@ -79,3 +88,24 @@ if __name__ == '__main__':
     client_publisher(lines)
 
     print("Queue flooding completed.")
+    print("Checking queue till all tickets are processed.")
+
+    while True:
+        # The passive=True flag checks the queue state without re-declaring it
+        queue_state = channel.queue_declare(queue=QUEUE_NAME, passive=True)
+        current_message_count = queue_state.method.message_count
+
+        if current_message_count == 0:
+            # The queue has been fully drained by the workers
+            break
+
+        # Wait before checking again to avoid spamming the RabbitMQ server
+        time.sleep(1)
+
+    connection.close()
+
+    end_time = time.time()
+    total_time = end_time - start_time
+
+    print(f"Benchmark completed.")
+    print(f"Total End-to-End time: {total_time:.2f} seconds")
