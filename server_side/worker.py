@@ -102,17 +102,61 @@ def get_local_shard_queues(host_ip):
         pass
     return local_queues
 
+def declare_topology_across_cluster(hosts):
+    """
+    Connects to each RabbitMQ node individually to declare its specific shard.
+    By default, RabbitMQ places a quorum queue leader on the client-connected node.
+    This guarantees perfectly distributed queue leaders across the cluster.
+    """
+    sorted_hosts = sorted([h.strip() for h in hosts])
+
+    for index, host in enumerate(sorted_hosts):
+        shard_name = f'ticket.shard.{index + 1}'
+        try:
+            print(f"[*] Initializing topology: Declaring {shard_name} on host {host}...")
+            credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+            parameters = pika.ConnectionParameters(host=host, credentials=credentials, blocked_connection_timeout=5)
+            connection = pika.BlockingConnection(parameters)
+            channel = connection.channel()
+
+            channel.exchange_declare(
+                exchange=EXCHANGE_NAME,
+                exchange_type='x-consistent-hash',
+                durable=True
+            )
+
+            channel.queue_declare(
+                queue=shard_name,
+                durable=True,
+                arguments={'x-queue-type': 'quorum'}
+            )
+
+            channel.queue_bind(
+                queue=shard_name,
+                exchange=EXCHANGE_NAME,
+                routing_key='1'
+            )
+
+            connection.close()
+        except Exception as e:
+            print(f"[!] Warning: Could not initialize shard on {host}: {e}")
+
 def start_worker():
     global client
     global auto_incr
 
     client = connect_to_redis(redis_host, REDIS_PASS)
     auto_incr = client.register_script(lua_script)
+
+    # Introduce jitter to prevent connection storms when dozens of workers start simultaneously
     time.sleep(random.uniform(2.0, 5.0))
+
+    # Explicitly enforce distributed queue placement before anyone starts consuming
+    declare_topology_across_cluster(rabbitmq_host_list)
+    time.sleep(1) # Give Raft a moment to elect leaders before querying the HTTP API
 
     while True:
         try:
-            # Shuffle the list so workers spread evenly across the cluster nodes
             random.shuffle(rabbitmq_host_list)
             target_host = rabbitmq_host_list[0].strip()
             print(f"\n[*] Connecting directly to RabbitMQ at {target_host}...")
@@ -129,32 +173,6 @@ def start_worker():
             channel = connection.channel()
             channel.basic_qos(prefetch_count=1)
 
-            # 1. INFRASTRUCTURE DECLARATION
-            # This is idempotent. The first worker creates it, the rest just verify it.
-            channel.exchange_declare(
-                exchange=EXCHANGE_NAME,
-                exchange_type='x-consistent-hash',
-                durable=True
-            )
-
-            # Declare the 3 Quorum Queues (Shards) and bind them to the exchange
-            for i in range(1, 4):
-                shard_name = f'ticket.shard.{i}'
-                channel.queue_declare(
-                    queue=shard_name,
-                    durable=True,
-                    arguments={'x-queue-type': 'quorum'}
-                )
-                channel.queue_bind(
-                    queue=shard_name,
-                    exchange=EXCHANGE_NAME,
-                    routing_key='1'  # Equal weight for all shards
-                )
-
-            # Give the cluster 1 second to establish Raft leaders and update the HTTP API
-            time.sleep(1)
-
-            # 2. DISCOVER LOCAL SHARDS
             local_shards = get_local_shard_queues(target_host)
 
             if not local_shards:
@@ -163,8 +181,6 @@ def start_worker():
                 time.sleep(3)
                 continue
 
-            # 3. CONSUME FROM ASSIGNED SHARDS
-            # Consume from ALL local shards assigned to this node
             for shard_queue in local_shards:
                 print(f"[*] Registering consumer for local replicated shard: {shard_queue}")
                 channel.basic_consume(
