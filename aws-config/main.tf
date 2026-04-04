@@ -250,7 +250,7 @@ resource "aws_instance" "worker_nodes" {
 #   vpc_security_group_ids = [aws_security_group.custom_sg.id]
 #
 #   # Prefab key of labs
-#   key_name               = "vockey"
+#   key_name               = "vockey"<
 #
 #   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
 #   depends_on = [aws_instance.rabbitmq_primary]
