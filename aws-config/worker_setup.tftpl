@@ -3,14 +3,6 @@
 RABBITMQ_HOST=${rabbitmq_host}
 REDIS_HOST=${redis_host}
 
-# Wait for main service of RabbitMQ to be up
-# We use --connect-timeout and --max-time to force curl to fail fast if the connection hangs
-until curl -s -f --connect-timeout 5 --max-time 10 "http://$RABBITMQ_HOST"; do
-  echo "Waiting for RabbitMQ main server to complete its setup..."
-  sleep 10
-done
-echo "Done!"
-
 # Wait for main service of Redis to be up
 # We use --connect-timeout and --max-time to force curl to fail fast if the connection hangs
 until curl -s -f --connect-timeout 5 --max-time 10 "http://$REDIS_HOST"; do
