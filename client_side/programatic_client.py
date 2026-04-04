@@ -50,14 +50,14 @@ def client_publisher(lines_list):
     global channel
     channel = connection.channel()
 
-    # 1. Declare the Consistent Hash Exchange
+    # 2. Declare the Consistent Hash Exchange
     channel.exchange_declare(
         exchange='ticket.requests',
         exchange_type='x-consistent-hash',
         durable=True
     )
 
-    # 2. Explicitly declare 3 Quorum Queues and bind them to the exchange.
+    # 3. Explicitly declare 3 Quorum Queues and bind them to the exchange.
     # The routing_key '1' acts as the weight (meaning all 3 queues receive equal traffic).
     for i in range(1, 4):
         shard_name = f'ticket.shard.{i}'

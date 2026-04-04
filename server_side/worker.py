@@ -48,6 +48,7 @@ MAX_TICKETS=20000
 COUNTER_VAR='ticket_counter'
 START_TIME_KEY='start_time'
 END_TIME_KEY='end_time'
+EXCHANGE_NAME='ticket.requests'
 
 parser = argparse.ArgumentParser(description="RabbitMQ and Redis connection script.")
 parser.add_argument('--rabbitmq-hosts', type=str, default='localhost', help='Comma-separated IPs')
@@ -128,7 +129,32 @@ def start_worker():
             channel = connection.channel()
             channel.basic_qos(prefetch_count=1)
 
-            # Discover which shards this node leads right now
+            # 1. INFRASTRUCTURE DECLARATION
+            # This is idempotent. The first worker creates it, the rest just verify it.
+            channel.exchange_declare(
+                exchange=EXCHANGE_NAME,
+                exchange_type='x-consistent-hash',
+                durable=True
+            )
+
+            # Declare the 3 Quorum Queues (Shards) and bind them to the exchange
+            for i in range(1, 4):
+                shard_name = f'ticket.shard.{i}'
+                channel.queue_declare(
+                    queue=shard_name,
+                    durable=True,
+                    arguments={'x-queue-type': 'quorum'}
+                )
+                channel.queue_bind(
+                    queue=shard_name,
+                    exchange=EXCHANGE_NAME,
+                    routing_key='1'  # Equal weight for all shards
+                )
+
+            # Give the cluster 1 second to establish Raft leaders and update the HTTP API
+            time.sleep(1)
+
+            # 2. DISCOVER LOCAL SHARDS
             local_shards = get_local_shard_queues(target_host)
 
             if not local_shards:
@@ -137,6 +163,7 @@ def start_worker():
                 time.sleep(3)
                 continue
 
+            # 3. CONSUME FROM ASSIGNED SHARDS
             # Consume from ALL local shards assigned to this node
             for shard_queue in local_shards:
                 print(f"[*] Registering consumer for local replicated shard: {shard_queue}")
