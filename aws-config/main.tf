@@ -229,9 +229,9 @@ resource "aws_instance" "worker_nodes" {
   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
   depends_on = [aws_instance.rabbitmq_primary, aws_instance.redis_primary]
 
-  # The RabbitMQ accessed server will be the first one, won't do load balancing for now.
+  # The RabbitMQ accessed server will be the first one available for all.
   user_data = templatefile("worker_setup.tftpl", {
-    rabbitmq_hosts = join(",", aws_instance.rabbitmq_nodes[*].private_ip),
+    rabbitmq_hosts = join(",", concat([aws_instance.rabbitmq_primary[0].private_ip], aws_instance.rabbitmq_nodes[*].private_ip)),
     redis_host = aws_instance.redis_primary[0].private_ip
   })
 
