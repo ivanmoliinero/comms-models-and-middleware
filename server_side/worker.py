@@ -142,7 +142,7 @@ def start_worker():
     while True:
         try:
             print(f"[*] Attempting to connect to "
-                  f"RabbitMQ at {rabbitmq_host}...")
+                  f"RabbitMQ")
             credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
 
             endpoints = []
