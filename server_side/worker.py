@@ -140,7 +140,7 @@ def declare_topology_across_cluster(hosts):
 
                 connection.close()
 
-                continue # exit while true to declare into next node.
+                break # exit while true to declare into next node.
             except Exception as e:
                 print(f"[!] Warning: Could not initialize shard on {host}: {e}")
 
