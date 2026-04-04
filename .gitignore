@@ -1,6 +1,6 @@
 # folders
 .obsidian/
-software-testing/redis_cluster-gateway_cluster-load_balancer/redis-cluster/*/data/
+software-testing/redis_replication-gateway_cluster-load_balancer/redis-cluster/*/data/
 
 # file extensions
 *.rdb

@@ -15,7 +15,7 @@ Redis performs **point-in-time snapshots** of the dataset.
 ### AOF (Append Only File)
 Redis keeps a **append only file** where it logs every write operation. If the server crashes, they can be replayed to reach the most recent database state.
 
-## Decision
+#decision
 Anyone of these options would offer what we need. Using RDB data-loss is possible, but we have 0 tolerance for this.
 
 > [!important] Conclusion
@@ -50,8 +50,7 @@ Here's how a client (Pyro server) would check if the buy has been successfully m
 #update 
 The [[#problem Client's request timeouts]] provoked a change in the way Redis will treat the request. The solution is studied in here:
 ![[Excalidraw/unnumbered-tickets-request-lifecycle.md#^frame=KNP3wHsr|V1.0]]
-
-Now every **BUY** must be linked to a **tracking ID**, so a client must first generate a **UUID** locally, and then request the **BUY** operation.
+#decision Now every **BUY** must be linked to a **tracking ID**, so a client must first generate a **UUID** locally, and then request the **BUY** operation.
 
 This would be the logic of the **BUY operation**:
 ![[unnumbered-tickets-request-lifecycle#V0.0 - BUY operation]]
