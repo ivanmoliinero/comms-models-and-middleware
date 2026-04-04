@@ -160,6 +160,16 @@ def start_worker():
             # The Sharding Plugin manages pseudo-queues automatically.
             # We only need to ensure we consume from the shard-aware exchange.
 
+            # In Sharding, the "queue" is actually a virtual exchange.
+            # We MUST declare it as an exchange of type 'x-modulus-hash' so
+            # the plugin can intercept it, apply your policy, and create the
+            # backing quorum shards.
+            channel.exchange_declare(
+                exchange=QUEUE_NAME,
+                exchange_type='x-modulus-hash',
+                durable=True
+            )
+
             # Only 1 message at a time per worker.
             channel.basic_qos(prefetch_count=1)
 
