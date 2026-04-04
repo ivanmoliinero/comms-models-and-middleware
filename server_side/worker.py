@@ -7,6 +7,7 @@ consistency backend.
 import pika
 import redis
 import argparse
+import time
 
 # This script ensures consistency while measuring total time of processing.
 lua_script = '''
@@ -79,7 +80,7 @@ redis_host = args.redis_host
 QUEUE_NAME='ticket.requests'
 EXCHANGE_NAME='ticket.acquisition'
 
-# client redis variable
+# Client redis variable
 client: redis.Redis
 auto_incr: redis.commands.core.Script
 
@@ -92,8 +93,6 @@ def process_message(ch, method, properties, body):
     message = body.decode('utf-8')
     print(f"[*] Received: {message}")
 
-    # Simulate processing time.
-    # The Redis connection and data handling logic will go here.
     global auto_incr
     result = auto_incr(keys=[COUNTER_VAR, START_TIME_KEY, END_TIME_KEY],
                        args=[MAX_TICKETS])
@@ -104,59 +103,100 @@ def process_message(ch, method, properties, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
+def connect_to_redis(host, password, port=6379, delay=5):
+    """
+    Attempts to connect to Redis infinitely until successful.
+    """
+    while True:
+        try:
+            print(f"[*] Attempting to connect to Redis at {host}...")
+            r_client = redis.Redis(
+                host=host,
+                port=port,
+                password=password,
+                decode_responses=True
+            )
+            # Ping verifies the connection is actually established
+            if r_client.ping():
+                print("[*] Successfully connected to Redis.")
+                return r_client
+        except redis.exceptions.ConnectionError:
+            print(f"[!] Redis connection failed. Retrying in {delay} seconds...")
+            time.sleep(delay)
+
+
 def start_worker():
     """
-    Initializes the RabbitMQ and Redis connection and starts the consumption
-    loop.
+    Initializes the Redis connection, then starts an infinite loop to maintain
+    the RabbitMQ connection. If RabbitMQ drops, it catches the error and reconnects.
     """
-    # RABBITMQ CONNECTION
-    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-    parameters = pika.ConnectionParameters(host=rabbitmq_host,
-                                           credentials=credentials)
-    connection = pika.BlockingConnection(parameters)
-    channel = connection.channel()
-
-    # Ensure the queue exists (this operation is idempotent)
-    channel.queue_declare(
-        queue=QUEUE_NAME,
-        durable=True,
-        arguments={'x-queue-type': 'quorum'}
-    )
-
-    # basic_qos guarantees that RabbitMQ will not assign more than 1
-    # message to this worker at a time until the previous one is ACKed.
-    channel.basic_qos(prefetch_count=1)
-
-    # Register the consumer.
-    # auto_ack=False is mandatory to prevent automatic deletion of messages.
-    channel.basic_consume(
-        queue=QUEUE_NAME,
-        on_message_callback=process_message,
-        auto_ack=False
-    )
-
-    # Redis connection
     global client
-    client = redis.Redis(
-        host=redis_host,
-        port=6379,
-        password=REDIS_PASS,
-        decode_responses=True
-    )
-
     global auto_incr
+
+    # 1. Establish Redis connection with retry mechanism FIRST.
+    # We do this outside the RabbitMQ loop so we don't reload Redis on every RMQ drop.
+    client = connect_to_redis(redis_host, REDIS_PASS)
     auto_incr = client.register_script(lua_script)
 
-    print(
-        " [*] Worker is ready and waiting for messages. To exit press CTRL+C")
+    # 2. Main loop for RabbitMQ connection and consumption
+    while True:
+        try:
+            print(f"[*] Attempting to connect to "
+                  f"RabbitMQ at {rabbitmq_host}...")
+            credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
 
-    try:
-        channel.start_consuming()
-    except KeyboardInterrupt:
-        print("\n [*] Worker shutdown sequence initiated.")
-        channel.stop_consuming()
-    finally:
-        connection.close()
+            # heartbeat ensures the connection is kept alive behind the NLB
+            parameters = pika.ConnectionParameters(
+                host=rabbitmq_host,
+                credentials=credentials,
+                heartbeat=60,
+                blocked_connection_timeout=300
+            )
+
+            connection = pika.BlockingConnection(parameters)
+            channel = connection.channel()
+
+            # Ensure the queue exists (this operation is idempotent)
+            channel.queue_declare(
+                queue=QUEUE_NAME,
+                durable=True,
+                arguments={'x-queue-type': 'quorum'}
+            )
+
+            # basic_qos guarantees that RabbitMQ will not assign more than 1
+            # message to this worker at a time until the previous one is ACKed.
+            channel.basic_qos(prefetch_count=1)
+
+            # Register the consumer.
+            # auto_ack=False is mandatory to prevent automatic deletion of
+            # messages.
+            channel.basic_consume(
+                queue=QUEUE_NAME,
+                on_message_callback=process_message,
+                auto_ack=False
+            )
+
+            print(" [*] Worker is ready and waiting for messages. "
+                  "To exit press CTRL+C")
+
+            # This is a blocking call. It will stay here as long as the
+            # connection is alive.
+            channel.start_consuming()
+
+        # Catch connection drops, NLB timeouts, or node failures
+        except (pika.exceptions.AMQPConnectionError,
+                pika.exceptions.ConnectionClosedByBroker,
+                pika.exceptions.StreamLostError) as error:
+            print(f"\n[!] Connection to RabbitMQ lost: {error}")
+            print("[*] Waiting 3 seconds before reconnecting...")
+            time.sleep(3)
+            continue # Restarts the while True loop
+
+        except KeyboardInterrupt:
+            print("\n [*] Worker shutdown sequence initiated.")
+            if 'connection' in locals() and connection.is_open:
+                connection.close()
+            break # Exits the while True loop
 
 
 if __name__ == '__main__':

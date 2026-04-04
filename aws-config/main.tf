@@ -214,6 +214,72 @@ resource "aws_instance" "rabbitmq_nodes" {
     Role = "MessageBroker"
   }
 }
+################################ ELASTIC LOAD BALANCING ################################
+# NLB to connect the workers to the different RabbitMQ nodes
+resource "aws_lb" "rabbitmq_nlb" {
+  region = var.aws_region
+  name               = "task1-rabbitmq-nlb"
+  internal           = true
+  load_balancer_type = "network"
+
+  # The subnets where your NLB will be provisioned
+  subnets            = [aws_subnet.custom_subnet.id]
+
+  tags = {
+    Name = "RabbitMQ-NLB"
+  }
+}
+
+# Target group for AWS NLB (i.e. RabbitMQ instances).
+resource "aws_lb_target_group" "rabbitmq_tg" {
+  name     = "rabbitmq-tcp-tg"
+  port     = 5672
+  protocol = "TCP"
+  vpc_id   = aws_vpc.custom_vpc.id
+
+  # Health check configuration to ensure traffic is only sent to alive nodes
+  health_check {
+    protocol            = "TCP"
+    port                = "5672"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    interval            = 10
+  }
+}
+
+# Listener to receive AMQP traffic and route it to the instances available in the target group.
+resource "aws_lb_listener" "rabbitmq_listener" {
+  load_balancer_arn = aws_lb.rabbitmq_nlb.arn
+  port              = "5672"
+  protocol          = "TCP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.rabbitmq_tg.arn
+  }
+}
+
+# Attach Primary Node(s)
+# The depends_on ensures attachments happen only after EC2 instances exist
+resource "aws_lb_target_group_attachment" "rabbitmq_primary_attachment" {
+  count            = length(aws_instance.rabbitmq_primary)
+  target_group_arn = aws_lb_target_group.rabbitmq_tg.arn
+  target_id        = aws_instance.rabbitmq_primary[count.index].id
+  port             = 5672
+
+  depends_on       = [aws_instance.rabbitmq_primary]
+}
+
+# Attach Secondary Node(s)
+resource "aws_lb_target_group_attachment" "rabbitmq_secondary_attachment" {
+  count            = length(aws_instance.rabbitmq_secondary)
+  target_group_arn = aws_lb_target_group.rabbitmq_tg.arn
+  target_id        = aws_instance.rabbitmq_secondary[count.index].id
+  port             = 5672
+
+  depends_on       = [aws_instance.rabbitmq_secondary]
+}
+########################################################################################
 
 # EC2 Instances for Workers
 resource "aws_instance" "worker_nodes" {
@@ -227,11 +293,11 @@ resource "aws_instance" "worker_nodes" {
   key_name               = "vockey"
 
   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
-  depends_on = [aws_instance.rabbitmq_primary, aws_instance.redis_primary]
+  depends_on = [aws_lb_listener.rabbitmq_listener, aws_instance.redis_primary]
 
   # The RabbitMQ accessed server will be the first one, won't do load balancing for now.
   user_data = templatefile("worker_setup.tftpl", {
-    rabbitmq_host = aws_instance.rabbitmq_primary[0].private_ip,
+    rabbitmq_host = aws_lb.rabbitmq_nlb.dns_name,
     redis_host = aws_instance.redis_primary[0].private_ip
   })
 
