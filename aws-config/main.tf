@@ -217,7 +217,6 @@ resource "aws_instance" "rabbitmq_nodes" {
 ################################ ELASTIC LOAD BALANCING ################################
 # NLB to connect the workers to the different RabbitMQ nodes
 resource "aws_lb" "rabbitmq_nlb" {
-  region = var.aws_region
   name               = "task1-rabbitmq-nlb"
   internal           = true
   load_balancer_type = "network"
@@ -272,12 +271,12 @@ resource "aws_lb_target_group_attachment" "rabbitmq_primary_attachment" {
 
 # Attach Secondary Node(s)
 resource "aws_lb_target_group_attachment" "rabbitmq_secondary_attachment" {
-  count            = length(aws_instance.rabbitmq_secondary)
+  count            = length(aws_instance.rabbitmq_nodes)
   target_group_arn = aws_lb_target_group.rabbitmq_tg.arn
-  target_id        = aws_instance.rabbitmq_secondary[count.index].id
+  target_id        = aws_instance.rabbitmq_nodes[count.index].id
   port             = 5672
 
-  depends_on       = [aws_instance.rabbitmq_secondary]
+  depends_on       = [aws_instance.rabbitmq_nodes]
 }
 ########################################################################################
 
