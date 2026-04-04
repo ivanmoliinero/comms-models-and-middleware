@@ -24,7 +24,7 @@ Here are some possible stacks that were available to be chosen:
 	- *Load balancer*: HAProxy or [[Nginx]]
 	- *Gateway*: [[OpenResty]]
 
-[[FastAPI]] works on Python, so it requires a running environment, and also running over Python, that is not precisely known by being extremely fast. By the other hand OpenResty is made on purpose to build scalable high performance web services (among others), so without doing any benchmarks, the **Option 2** is preferred.
+#decision [[FastAPI]] works on Python, so it requires a running environment, and also running over Python, that is not precisely known by being extremely fast. By the other hand, OpenResty is made on purpose to build scalable high performance web services (among others), so without doing any benchmarks, the **Option 2** is preferred.
 
 ## Experiments
 > [!important] Hardware

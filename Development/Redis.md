@@ -2,6 +2,33 @@
 type:
   - database
 ---
+# Persistence
+Persistence it's necessary to deal with database crashes. If persistence it's not explicitly implemented in Redis, a crash would mean a loss of all the data, and thus, the tracking of the sold tickets.
+
+## Options
+### RDB (Redis DataBase)
+Redis performs **point-in-time snapshots** of the dataset.
+
+> [!fail] Problem
+> What if some tickets are sold from the last snapshot, and the server crashes before storing them? This would leave some clients thinking that they've made their purchase successfully, whilst in reality not.
+
+### AOF (Append Only File)
+Redis keeps a **append only file** where it logs every write operation. If the server crashes, they can be replayed to reach the most recent database state.
+
+## Decision
+Anyone of these options would offer what we need. Using RDB data-loss is possible, but we have 0 tolerance for this.
+
+> [!important] Conclusion
+> [rule:: client-database-consistency] We cannot tell a client its purchase has been successfully made until it is stored.
+
+^78f20b
+
+> [!fail] Problem
+> The [[#^78f20b]] rule introduces a lot of latency since it would vanish Redis' advantage against other databases (that is, working at the speed of RAM).
+
+# Fault tolerance
+
+
 # Numbered tickets
 ## Logic
 Here's how a client (Pyro server) would check if the buy has been successfully made or not:
