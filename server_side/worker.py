@@ -111,35 +111,38 @@ def declare_topology_across_cluster(hosts):
     sorted_hosts = sorted([h.strip() for h in hosts])
 
     for index, host in enumerate(sorted_hosts):
-        shard_name = f'ticket.shard.{index + 1}'
-        try:
-            print(f"[*] Initializing topology: Declaring {shard_name} on host {host}...")
-            credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-            parameters = pika.ConnectionParameters(host=host, credentials=credentials, blocked_connection_timeout=5)
-            connection = pika.BlockingConnection(parameters)
-            channel = connection.channel()
+        while True:
+            shard_name = f'ticket.shard.{index + 1}'
+            try:
+                print(f"[*] Initializing topology: Declaring {shard_name} on host {host}...")
+                credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+                parameters = pika.ConnectionParameters(host=host, credentials=credentials, blocked_connection_timeout=5)
+                connection = pika.BlockingConnection(parameters)
+                channel = connection.channel()
 
-            channel.exchange_declare(
-                exchange=EXCHANGE_NAME,
-                exchange_type='x-consistent-hash',
-                durable=True
-            )
+                channel.exchange_declare(
+                    exchange=EXCHANGE_NAME,
+                    exchange_type='x-consistent-hash',
+                    durable=True
+                )
 
-            channel.queue_declare(
-                queue=shard_name,
-                durable=True,
-                arguments={'x-queue-type': 'quorum'}
-            )
+                channel.queue_declare(
+                    queue=shard_name,
+                    durable=True,
+                    arguments={'x-queue-type': 'quorum'}
+                )
 
-            channel.queue_bind(
-                queue=shard_name,
-                exchange=EXCHANGE_NAME,
-                routing_key='1'
-            )
+                channel.queue_bind(
+                    queue=shard_name,
+                    exchange=EXCHANGE_NAME,
+                    routing_key='1'
+                )
 
-            connection.close()
-        except Exception as e:
-            print(f"[!] Warning: Could not initialize shard on {host}: {e}")
+                connection.close()
+
+                continue # exit while true to declare into next node.
+            except Exception as e:
+                print(f"[!] Warning: Could not initialize shard on {host}: {e}")
 
 def start_worker():
     global client
