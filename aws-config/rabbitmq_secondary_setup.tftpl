@@ -55,3 +55,15 @@ docker exec rabbitmq-server rabbitmqctl stop_app
 docker exec rabbitmq-server rabbitmqctl reset
 docker exec rabbitmq-server rabbitmqctl join_cluster rabbit@$PRIMARY_HOSTNAME
 docker exec rabbitmq-server rabbitmqctl start_app
+
+# Enable the Sharding Plugin
+docker exec rabbitmq-server rabbitmq-plugins enable rabbitmq_sharding
+
+# Define a policy to shard any queue that starts with 'ticket.'
+# The plugin automatically routes messages by hashing their standard AMQP routing key.
+# We only need to define the number of shards per node (1 shard per node = 3 total shards).
+docker exec rabbitmq-server rabbitmqctl set_policy \
+    shard-ticketing \
+    "^ticket\." \
+    '{"shards-per-node": 1}' \
+    --apply-to exchanges

@@ -43,9 +43,14 @@ while ! docker exec rabbitmq-server rabbitmqctl status > /dev/null 2>&1; do
 done
 docker ps -a
 
-# Once finish, indicate through Nginx
-yum install nginx -y
-systemctl start nginx
-systemctl enable nginx
+# Enable the Sharding Plugin
+docker exec rabbitmq-server rabbitmq-plugins enable rabbitmq_sharding
 
-echo "Ready" > /usr/share/nginx/html/index.html
+# Define a policy to shard any queue that starts with 'ticket.'
+# The plugin automatically routes messages by hashing their standard AMQP routing key.
+# We only need to define the number of shards per node (1 shard per node = 3 total shards).
+docker exec rabbitmq-server rabbitmqctl set_policy \
+    shard-ticketing \
+    "^ticket\." \
+    '{"shards-per-node": 1}' \
+    --apply-to exchanges

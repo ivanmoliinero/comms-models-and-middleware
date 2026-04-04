@@ -156,31 +156,22 @@ def start_worker():
             connection = pika.BlockingConnection(parameters)
             channel = connection.channel()
 
-            # Ensure the queue exists (this operation is idempotent)
-            channel.queue_declare(
-                queue=QUEUE_NAME,
-                durable=True,
-                arguments={'x-queue-type': 'quorum'}
-            )
+            # We do not declare a specific queue here.
+            # The Sharding Plugin manages pseudo-queues automatically.
+            # We only need to ensure we consume from the shard-aware exchange.
 
-            # basic_qos guarantees that RabbitMQ will not assign more than 1
-            # message to this worker at a time until the previous one is ACKed.
+            # Only 1 message at a time per worker.
             channel.basic_qos(prefetch_count=1)
 
-            # Register the consumer.
-            # auto_ack=False is mandatory to prevent automatic deletion of
-            # messages.
+            # In Sharding, we consume from the exchange name directly,
+            # and the plugin routes a specific shard to this consumer.
             channel.basic_consume(
-                queue=QUEUE_NAME,
+                queue='ticket.requests',  # The plugin makes this name virtual
                 on_message_callback=process_message,
                 auto_ack=False
             )
 
-            print(" [*] Worker is ready and waiting for messages. "
-                  "To exit press CTRL+C")
-
-            # This is a blocking call. It will stay here as long as the
-            # connection is alive.
+            print(" [*] Sharded Worker is ready. Processing local shards...")
             channel.start_consuming()
 
         # Catch connection drops, NLB timeouts, or node failures
