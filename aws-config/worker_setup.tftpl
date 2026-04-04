@@ -1,22 +1,14 @@
 #!/bin/bash
+
 # Set RABBITMQ_HOST and REDIS_HOST
 RABBITMQ_HOST=${rabbitmq_host}
 REDIS_HOST=${redis_host}
 
-# Wait for main service of Redis to be up
-# We use --connect-timeout and --max-time to force curl to fail fast if the connection hangs
-until curl -s -f --connect-timeout 5 --max-time 10 "http://$REDIS_HOST"; do
-  echo "Waiting for Redis main server to complete its setup..."
-  sleep 10
-done
-echo "Done!"
-
 # Update the system packages
 yum update -y
 
-# Install Git, Python3 Pip and NC tool to ensure connectivity.
-yum install git -y
-yum install python3-pip -y
+# Install Git and Python3 Pip
+yum install git python3-pip -y
 
 REPO_URL="https://github.com/ivanmoliinero/comms-models-and-middleware.git"
 TARGET_DIR="/home/ec2-user/comms-models-and-middleware"
@@ -26,12 +18,41 @@ cd /home/ec2-user
 git clone $REPO_URL
 
 cd $TARGET_DIR
-git checkout indirect-quorum-queue # TODO: change for final version
+git checkout indirect-rabbit-load-balancing # TODO: change for final version
 
-# Virtual Python env + packages installation
-python3 -m venv /home/ec2-user/venv
+# Ensure ec2-user owns the cloned repository
+chown -R ec2-user:ec2-user $TARGET_DIR
 
-/home/ec2-user/venv/bin/pip install --upgrade pip
-/home/ec2-user/venv/bin/pip install -r $TARGET_DIR/requirements.txt
+# Virtual Python env + packages installation executed as ec2-user
+# This prevents permission denied errors when the systemd service runs as ec2-user
+su - ec2-user -c "python3 -m venv /home/ec2-user/venv"
+su - ec2-user -c "/home/ec2-user/venv/bin/pip install --upgrade pip"
+su - ec2-user -c "/home/ec2-user/venv/bin/pip install -r $TARGET_DIR/requirements.txt"
 
-su - ec2-user -c "nohup /home/ec2-user/venv/bin/python3 $TARGET_DIR/server_side/worker.py --rabbitmq-host $RABBITMQ_HOST --redis-host $REDIS_HOST > /home/ec2-user/worker.log 2>&1 &"
+# Create the systemd service unit file
+cat << EOF > /etc/systemd/system/ticket-worker.service
+[Unit]
+Description=Python Ticketing Worker Service
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=$TARGET_DIR
+ExecStart=/home/ec2-user/venv/bin/python3 $TARGET_DIR/server_side/worker.py --rabbitmq-host $RABBITMQ_HOST --redis-host $REDIS_HOST
+# Automatically restart the service if it crashes or exits
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload the systemd manager configuration
+systemctl daemon-reload
+
+# Enable the service to start automatically on system boot
+systemctl enable ticket-worker.service
+
+# Start the service immediately
+systemctl start ticket-worker.service
