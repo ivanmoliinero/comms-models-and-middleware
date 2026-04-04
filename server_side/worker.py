@@ -106,7 +106,8 @@ def declare_topology_across_cluster(hosts):
     """
     Connects to each RabbitMQ node individually to declare its specific shard.
     By default, RabbitMQ places a quorum queue leader on the client-connected node.
-    This guarantees perfectly distributed queue leaders across the cluster.
+    Followers (replicas) are AUTOMATICALLY created on the other nodes via the Raft protocol.
+    A second loop is not needed and will not do anything.
     """
     sorted_hosts = sorted([h.strip() for h in hosts])
 
@@ -116,7 +117,11 @@ def declare_topology_across_cluster(hosts):
             try:
                 print(f"[*] Initializing topology: Declaring {shard_name} on host {host}...")
                 credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-                parameters = pika.ConnectionParameters(host=host, credentials=credentials, blocked_connection_timeout=5)
+                parameters = pika.ConnectionParameters(
+                    host=host,
+                    credentials=credentials,
+                    blocked_connection_timeout=5
+                )
                 connection = pika.BlockingConnection(parameters)
                 channel = connection.channel()
 
@@ -139,10 +144,12 @@ def declare_topology_across_cluster(hosts):
                 )
 
                 connection.close()
+                break # Exit the while loop to declare the next shard on the next node
 
-                break # exit while true to declare into next node.
             except Exception as e:
                 print(f"[!] Warning: Could not initialize shard on {host}: {e}")
+                print("[*] Retrying in 3 seconds...")
+                time.sleep(3)
 
 def start_worker():
     global client
