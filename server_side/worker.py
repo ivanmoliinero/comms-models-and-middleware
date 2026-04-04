@@ -106,8 +106,6 @@ def declare_topology_across_cluster(hosts):
     """
     Connects to each RabbitMQ node individually to declare its specific shard.
     By default, RabbitMQ places a quorum queue leader on the client-connected node.
-    Followers (replicas) are AUTOMATICALLY created on the other nodes via the Raft protocol.
-    A second loop is not needed and will not do anything.
     """
     sorted_hosts = sorted([h.strip() for h in hosts])
 
@@ -144,7 +142,7 @@ def declare_topology_across_cluster(hosts):
                 )
 
                 connection.close()
-                break # Exit the while loop to declare the next shard on the next node
+                break
 
             except Exception as e:
                 print(f"[!] Warning: Could not initialize shard on {host}: {e}")
@@ -158,12 +156,13 @@ def start_worker():
     client = connect_to_redis(redis_host, REDIS_PASS)
     auto_incr = client.register_script(lua_script)
 
-    # Introduce jitter to prevent connection storms when dozens of workers start simultaneously
     time.sleep(random.uniform(2.0, 5.0))
 
-    # Explicitly enforce distributed queue placement before anyone starts consuming
     declare_topology_across_cluster(rabbitmq_host_list)
-    time.sleep(1) # Give Raft a moment to elect leaders before querying the HTTP API
+    time.sleep(1)
+
+    # We know exactly how many shards exist because we declared them
+    all_shards = [f'ticket.shard.{i+1}' for i in range(len(rabbitmq_host_list))]
 
     while True:
         try:
@@ -185,18 +184,22 @@ def start_worker():
 
             local_shards = get_local_shard_queues(target_host)
 
-            if not local_shards:
-                print("[!] This node does not currently lead any shards. Reconnecting elsewhere...")
-                connection.close()
-                time.sleep(3)
-                continue
+            # Consume from ALL shards, but prioritize local ones
+            for shard_queue in all_shards:
+                if shard_queue in local_shards:
+                    # High priority for local shard (Fast Path)
+                    priority_level = 10
+                    print(f"[*] Registering HIGH priority consumer for local shard: {shard_queue}")
+                else:
+                    # Low priority for remote shard (Fallback Path)
+                    priority_level = 1
+                    print(f"[*] Registering LOW priority consumer for remote shard: {shard_queue}")
 
-            for shard_queue in local_shards:
-                print(f"[*] Registering consumer for local replicated shard: {shard_queue}")
                 channel.basic_consume(
                     queue=shard_queue,
                     on_message_callback=process_message,
-                    auto_ack=False
+                    auto_ack=False,
+                    arguments={'x-priority': priority_level}
                 )
 
             print(" [*] Worker is fully operational. To exit press CTRL+C")

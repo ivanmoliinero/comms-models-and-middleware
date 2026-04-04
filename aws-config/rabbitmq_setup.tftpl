@@ -45,3 +45,6 @@ docker ps -a
 
 # Enable the Consistent Hash Exchange Plugin locally before joining the cluster
 docker exec rabbitmq-server rabbitmq-plugins enable rabbitmq_consistent_hash_exchange
+
+# Rebalance any leftover quorum queue so each node is leader of 1.
+docker exec rabbitmq-server rabbitmq-queues rebalance "all"

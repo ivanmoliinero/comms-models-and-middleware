@@ -58,3 +58,6 @@ docker exec rabbitmq-server rabbitmqctl stop_app
 docker exec rabbitmq-server rabbitmqctl reset
 docker exec rabbitmq-server rabbitmqctl join_cluster rabbit@$PRIMARY_HOSTNAME
 docker exec rabbitmq-server rabbitmqctl start_app
+
+# Rebalance any leftover quorum queue so each node is leader of 1.
+docker exec rabbitmq-server rabbitmq-queues rebalance "all"
