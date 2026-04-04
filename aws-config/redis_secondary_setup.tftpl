@@ -15,8 +15,6 @@ usermod -aG docker ec2-user
 
 # Define the Redis configuration variables
 REDIS_PASS="admin123"
-# Receives a space-separated string of IPs from Terraform
-SECONDARY_IPS="${secondary_ips}"
 
 # Run the Redis container in cluster mode using the host network
 docker run -d \
@@ -38,23 +36,4 @@ while ! docker exec redis-server redis-cli -a $REDIS_PASS ping | grep -q "PONG";
   sleep 5
 done
 
-# Wait a few extra seconds to ensure secondary nodes are fully accepting connections
-sleep 10
-
-# Retrieve the local private IP directly from the OS network insterface
-# hostname -I returns all IPs, awk '{print $1}' extracts the primary private IP
-LOCAL_IP=$(hostname -I | awk '{print $1}')
-
-# Dynamically construct the target nodes string
-CLUSTER_TARGETS="$LOCAL_IP:6379"
-for IP in $SECONDARY_IPS; do
-  CLUSTER_TARGETS="$CLUSTER_TARGETS $IP:6379"
-done
-
-# Execute the cluster creation command automatically
-echo "Initializing Redis Cluster with nodes: $CLUSTER_TARGETS"
-# Variable expansion without quotes allows bash to pass the targets as separate arguments
-docker exec redis-server redis-cli -a $REDIS_PASS --cluster create \
-  $CLUSTER_TARGETS \
-  --cluster-replicas 0 \
-  --cluster-yes
+echo "Secondary node ready and waiting for cluster assignment."

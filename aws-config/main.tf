@@ -138,6 +138,15 @@ resource "aws_security_group" "custom_sg" {
     cidr_blocks = [aws_vpc.custom_vpc.cidr_block]
   }
 
+  # REDIS cluster bus
+  ingress {
+    description = "Redis Cluster Bus"
+    from_port   = 16379
+    to_port     = 16379
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.custom_vpc.cidr_block] # Restrict to VPC internal traffic
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -151,6 +160,7 @@ resource "aws_security_group" "custom_sg" {
 }
 
 # EC2 Instance definition
+######################################## RABBITMQ CLUSTER ########################################
 # 1 EC2 instance for main RabbitMQ server
 resource "aws_instance" "rabbitmq_primary" {
   count                  = 1
@@ -167,25 +177,6 @@ resource "aws_instance" "rabbitmq_primary" {
   tags = {
     Name = "task1-RabbitMQ-Primary-Node"
     Role = "MessageBroker"
-  }
-}
-
-# 1 EC2 instance for main Redis server.
-resource "aws_instance" "redis_primary" {
-  count                  = 1
-  ami                    = var.ec2_ami_id
-  instance_type          = var.ec2_redis_node
-  subnet_id              = aws_subnet.custom_subnet.id
-  vpc_security_group_ids = [aws_security_group.custom_sg.id]
-
-  # Prefab key of labs
-  key_name               = "vockey"
-
-  user_data = templatefile("redis_setup.tftpl", {})
-
-  tags = {
-    Name = "task1-Redis-Primary-Node"
-    Role = "StateStore"
   }
 }
 
@@ -214,6 +205,51 @@ resource "aws_instance" "rabbitmq_nodes" {
     Role = "MessageBroker"
   }
 }
+##################################################################################################
+
+######################################## REDIS CLUSTER ########################################
+# Secondary nodes instances
+resource "aws_instance" "redis_secondary" {
+  count                  = 2
+  ami                    = var.ec2_ami_id
+  instance_type          = var.ec2_instance_type
+  subnet_id              = aws_subnet.custom_subnet.id
+  vpc_security_group_ids = [aws_security_group.custom_sg.id]
+  key_name               = "vockey"
+
+  user_data = file("redis_secondary_setup.tftpl")
+
+  tags = {
+    Name = "task1-Redis-Secondary-${count.index + 1}"
+    Role = "RedisCluster"
+  }
+}
+# 1 EC2 instance for main Redis server.
+resource "aws_instance" "redis_primary" {
+  count                  = 1
+  ami                    = var.ec2_ami_id
+  instance_type          = var.ec2_redis_node
+  subnet_id              = aws_subnet.custom_subnet.id
+  vpc_security_group_ids = [aws_security_group.custom_sg.id]
+
+  depends_on = [aws_instance.redis_secondary]
+
+  # Prefab key of labs
+  key_name               = "vockey"
+
+  # Inject all secondary private IPs as a single space-separated string
+  user_data = templatefile("redis_setup.tftpl", {
+    secondary_ips = join(" ", aws_instance.redis_secondary[*].private_ip)
+  })
+
+  tags = {
+    Name = "task1-Redis-Primary-Node"
+    Role = "StateStore"
+  }
+}
+###############################################################################################
+
+
 ################################ ELASTIC LOAD BALANCING ################################
 # NLB to connect the workers to the different RabbitMQ nodes
 resource "aws_lb" "rabbitmq_nlb" {
