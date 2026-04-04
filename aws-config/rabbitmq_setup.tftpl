@@ -43,9 +43,5 @@ while ! docker exec rabbitmq-server rabbitmqctl status > /dev/null 2>&1; do
 done
 docker ps -a
 
-# Once finish, indicate through Nginx
-yum install nginx -y
-systemctl start nginx
-systemctl enable nginx
-
-echo "Ready" > /usr/share/nginx/html/index.html
+# Enable the Consistent Hash Exchange Plugin locally before joining the cluster
+docker exec rabbitmq-server rabbitmq-plugins enable rabbitmq_consistent_hash_exchanges

@@ -50,6 +50,9 @@ PRIMARY_HOSTNAME="ip-$(echo $PRIMARY_IP | tr '.' '-')"
 
 echo "This is a secondary node. Joining cluster at rabbit@$PRIMARY_HOSTNAME..."
 
+# Enable the Consistent Hash Exchange Plugin locally before joining the cluster
+docker exec rabbitmq-server rabbitmq-plugins enable rabbitmq_consistent_hash_exchange
+
 # Execute the cluster join commands
 docker exec rabbitmq-server rabbitmqctl stop_app
 docker exec rabbitmq-server rabbitmqctl reset

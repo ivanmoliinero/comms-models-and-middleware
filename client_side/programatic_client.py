@@ -50,25 +50,40 @@ def client_publisher(lines_list):
     global channel
     channel = connection.channel()
 
-    # 2. Declare the quorum queue (idempotent operation)
-    channel.exchange_declare(exchange=EXCHANGE_NAME,
-                             exchange_type='direct')
-    channel.queue_declare(queue=QUEUE_NAME,
-                          durable=True,
-                          arguments={'x-queue-type': 'quorum'})
-    channel.queue_bind(queue=QUEUE_NAME,
-                       exchange=EXCHANGE_NAME,
-                       routing_key=QUEUE_NAME)
+    # 1. Declare the Consistent Hash Exchange
+    channel.exchange_declare(
+        exchange='ticket.requests',
+        exchange_type='x-consistent-hash',
+        durable=True
+    )
+
+    # 2. Explicitly declare 3 Quorum Queues and bind them to the exchange.
+    # The routing_key '1' acts as the weight (meaning all 3 queues receive equal traffic).
+    for i in range(1, 4):
+        shard_name = f'ticket.shard.{i}'
+        channel.queue_declare(
+            queue=shard_name,
+            durable=True,
+            arguments={'x-queue-type': 'quorum'}
+        )
+        channel.queue_bind(
+            queue=shard_name,
+            exchange='ticket.requests',
+            routing_key='1'
+        )
 
     global start_time
     start_time = time.time()
 
     # 3. Burst publish the messages
-    for line in lines_list:
+    for index, line in enumerate(lines_list):
         if line.startswith("BUY "):
+            # The x-consistent-hash exchange uses this dynamic string to distribute the load
+            dynamic_routing_key = str(index)
+
             channel.basic_publish(
-                exchange=EXCHANGE_NAME,
-                routing_key=QUEUE_NAME,
+                exchange='ticket.requests',
+                routing_key=dynamic_routing_key,
                 body=line.encode('utf-8'),
                 properties=pika.BasicProperties(
                     delivery_mode=pika.DeliveryMode.Persistent

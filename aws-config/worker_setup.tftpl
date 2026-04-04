@@ -18,7 +18,7 @@ cd /home/ec2-user
 git clone $REPO_URL
 
 cd $TARGET_DIR
-git checkout indirect-rabbit-prim-secondary # TODO: change for final version
+git checkout testing/indirect-rabbit-shard-repl # TODO: change for final version
 
 # Ensure ec2-user owns the cloned repository
 chown -R ec2-user:ec2-user $TARGET_DIR
