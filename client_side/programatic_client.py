@@ -50,25 +50,32 @@ def client_publisher(lines_list):
     global channel
     channel = connection.channel()
 
-    # 2. Declare the quorum queue (idempotent operation)
-    channel.exchange_declare(exchange=EXCHANGE_NAME,
-                             exchange_type='direct')
-    channel.queue_declare(queue=QUEUE_NAME,
-                          durable=True,
-                          arguments={'x-queue-type': 'quorum'})
-    channel.queue_bind(queue=QUEUE_NAME,
-                       exchange=EXCHANGE_NAME,
-                       routing_key=QUEUE_NAME)
+    # 2. Declare the sharded exchange (idempotent operation)
+    # The sharding plugin takes over and creates the backing quorum queues automatically.
+    # We no longer declare queues or bind them manually.
+    channel.exchange_declare(
+        exchange=QUEUE_NAME,
+        exchange_type='x-modulus-hash',
+        durable=True
+    )
 
     global start_time
     start_time = time.time()
 
     # 3. Burst publish the messages
-    for line in lines_list:
+    # We use 'enumerate' to get an incremental index for each message
+    for index, line in enumerate(lines_list):
         if line.startswith("BUY "):
+            # CRITICAL: A dynamic routing key is strictly required for the sharding plugin.
+            # The x-modulus-hash exchange hashes this key to distribute the load.
+            # Using the loop 'index' as a string ensures perfect, even distribution
+            # across all 3 RabbitMQ nodes.
+            dynamic_routing_key = str(index)
+
+            # Publish directly to the sharded exchange, which shares the name with the logical queue
             channel.basic_publish(
-                exchange=EXCHANGE_NAME,
-                routing_key=QUEUE_NAME,
+                exchange=QUEUE_NAME,
+                routing_key=dynamic_routing_key,
                 body=line.encode('utf-8'),
                 properties=pika.BasicProperties(
                     delivery_mode=pika.DeliveryMode.Persistent
