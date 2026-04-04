@@ -38,6 +38,18 @@ Here are some possible stacks that were available to be chosen:
 TABLE experiment
 WHERE experiment
 ```
-### (experiment:: Gateway: REST -> Pyro)
+## Benchmarks
+> [!important] Hardware
+> The **hardware** used for every experiment is the following:
+> > - RAM: 2 GB
+> > - CPU: 1 core - Intel(R) Core(TM) i7-10870H CPU @ 2.20GHz
+> 
+> Note that this resource limits are software enforced, and not the real machine hardware capabilities. This is done because the tests are performed with 2 components: server, client; if the server is capable of getting the hole machine power, then the clients will not perform at its maximum, and viceversa.
+```dataview
+TABLE benchmark
+WHERE benchmark
+```
+### benchmark:: Gateway: REST -> Pyro
 How many requests will this gateway support?
 #todo
+

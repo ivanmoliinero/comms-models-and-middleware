@@ -27,7 +27,7 @@ Anyone of these options would offer what we need. Using RDB data-loss is possibl
 > The [[#^78f20b]] rule introduces a lot of latency since it would vanish Redis' advantage against other databases (that is, working at the speed of RAM).
 
 # Fault tolerance
-
+#todo
 
 # Numbered tickets
 ## Logic
@@ -92,8 +92,6 @@ This is a huge problem that must be solved.
 ##### solution-to:: [[#problem Client's request timeouts]]
 Being able to identify the client that generated the request is crucial for the solution. To avoid login, clients will first request a **tracking ID** that will be linked to its purchase. Then they will send a purchase request; if they need to retry, indicating the same tracking ID will prevent them from purchasing 2 different tickets.
 
-# Fault tolerance
-#todo
 # Experiments
 ## Experiment:: Throughput
 How much **throughput** Redis supports? The following test has been performed to gather some data.
@@ -139,7 +137,7 @@ source: [[unnumbered-tickets-benchmark.csv]]
 ```
 In conclusion and for the given scenario, Redis will not need to be scaled horizontally.
 
-### Experiment:: Unnumbered tickets - [[unnumbered-tickets-request-lifecycle#V0.1 - BUY operation]]
+### Benchmark:: Unnumbered tickets - [[unnumbered-tickets-request-lifecycle#V0.1 - BUY operation]]
 
 1. Load the function to benchmark
 ```redis-cli
@@ -188,8 +186,8 @@ columns:
 - p99_latency_ms	
 source: [[unnumbered-tickets-BUY-function-V0.1-retries-benchmark.csv]]
 ```
-### Experiment:: Numbered tickets
-#### Experiment:: No hotspots
+### Benchmark:: Numbered tickets
+#### Benchmark:: No hotspots
 In this experiment, no seats are preferred against other, so the probability of a client willing to buy a seat number `x` it's the same than for `y`.
 > [!important] Disclaimer
 > This differs from reality, therefore, a posterior test will be made to simulate more precisely the reality.
@@ -213,7 +211,7 @@ columns:
 - p99_latency_ms	
 source: [[numbered-tickets-no-hotspots-benchmark.csv]]
 ```
-#### Experiment:: Hotspots
+#### Benchmark:: Hotspots
 In this experiment, the 80% of the requests will be targeted to a 5% of the seats. To simulate this, the test will execute
 - 80% of 40.000 requests = 32.000 requests
 - 5% of 20.000 seats = 1000 seats
@@ -229,6 +227,7 @@ redis-benchmark -h redis-server -c 5 -n 32000 -q --threads 5 -r 1000 \
 SETNX ticket:__rand_int__ 1
 ```
 
+##### Results
 ![[numbered-tickets-hotspots-benchmark.csv]]
 ```csvtable
 columns:
