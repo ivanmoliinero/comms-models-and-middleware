@@ -129,10 +129,13 @@ def declare_topology_across_cluster(hosts):
                     durable=True
                 )
 
+                # By forcing size to 3, workers will fail to declare queues
+                # if 3 nodes are not up.
                 channel.queue_declare(
                     queue=shard_name,
                     durable=True,
-                    arguments={'x-queue-type': 'quorum'}
+                    arguments={'x-queue-type': 'quorum',
+                               'x-quorum-initial-group-size': 3}
                 )
 
                 channel.queue_bind(
