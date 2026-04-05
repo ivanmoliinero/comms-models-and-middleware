@@ -7,8 +7,8 @@ REDIS_HOST="${redis_host}"
 # Update the system packages
 yum update -y
 
-# Install Git and Python3 Pip
-yum install git python3-pip -y
+# Install Git, Python3 Pip, and jq (for JSON parsing)
+yum install git python3-pip jq -y
 
 REPO_URL="https://github.com/ivanmoliinero/comms-models-and-middleware.git"
 TARGET_DIR="/home/ec2-user/comms-models-and-middleware"
@@ -24,7 +24,6 @@ git checkout testing/indirect-rabbit-shard-repl # TODO: change for final version
 chown -R ec2-user:ec2-user $TARGET_DIR
 
 # Virtual Python env + packages installation executed as ec2-user
-# This prevents permission denied errors when the systemd service runs as ec2-user
 su - ec2-user -c "python3 -m venv /home/ec2-user/venv"
 su - ec2-user -c "/home/ec2-user/venv/bin/pip install --upgrade pip"
 su - ec2-user -c "/home/ec2-user/venv/bin/pip install -r $TARGET_DIR/requirements.txt"
@@ -40,8 +39,7 @@ Type=simple
 User=ec2-user
 WorkingDirectory=$TARGET_DIR
 # Pass the comma-separated list of RabbitMQ IPs to the worker script
-ExecStart=/home/ec2-user/venv/bin/python3 $TARGET_DIR/server_side/worker.py --rabbitmq-hosts $RABBITMQ_HOSTS --redis-host $REDIS_HOST
-# Automatically restart the service if it crashes or exits
+ExecStart=/home/ec2-user/venv/bin/python3 -u $TARGET_DIR/server_side/worker.py --rabbitmq-hosts $RABBITMQ_HOSTS --redis-host $REDIS_HOST
 Restart=always
 RestartSec=5
 
@@ -51,9 +49,30 @@ EOF
 
 # Reload the systemd manager configuration
 systemctl daemon-reload
-
-# Enable the service to start automatically on system boot
 systemctl enable ticket-worker.service
 
-# Start the service immediately
+# ==============================================================================
+# SYNCHRONIZATION BARRIER: Wait for the RabbitMQ cluster to be fully formed
+# ==============================================================================
+# Extract the first IP from the comma-separated list to query the HTTP API
+API_TARGET=$(echo "$RABBITMQ_HOSTS" | cut -d',' -f1)
+
+echo "Waiting for RabbitMQ cluster to form exactly 3 nodes..."
+while true; do
+  # Query the nodes endpoint and count the number of returned JSON objects
+  # We suppress curl errors (-s) in case the server is not listening yet
+  NODE_COUNT=$(curl -s -u admin:admin123 http://$API_TARGET:15672/api/nodes | jq length)
+
+  # Check if the response is a valid number and equals 3
+  if [[ "$NODE_COUNT" =~ ^[0-9]+$ ]] && [ "$NODE_COUNT" -eq 3 ]; then
+    echo "RabbitMQ cluster is fully formed with 3 nodes. Proceeding."
+    break
+  fi
+
+  echo "Current node count is $NODE_COUNT. Retrying in 5 seconds..."
+  sleep 5
+done
+# ==============================================================================
+
+# Start the service immediately ONLY after the cluster is verified
 systemctl start ticket-worker.service

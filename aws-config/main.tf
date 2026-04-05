@@ -227,7 +227,7 @@ resource "aws_instance" "worker_nodes" {
   key_name               = "vockey"
 
   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
-  depends_on = [aws_instance.rabbitmq_primary, aws_instance.redis_primary]
+  depends_on = [aws_instance.rabbitmq_primary, aws_instance.redis_primary, aws_instance.rabbitmq_nodes]
 
   # The RabbitMQ accessed server will be the first one available for all.
   user_data = templatefile("worker_setup.tftpl", {

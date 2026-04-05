@@ -64,7 +64,8 @@ def client_publisher(lines_list):
         channel.queue_declare(
             queue=shard_name,
             durable=True,
-            arguments={'x-queue-type': 'quorum'}
+            arguments={'x-queue-type': 'quorum',
+                       'x-quorum-initial-group-size': 3}
         )
         channel.queue_bind(
             queue=shard_name,
