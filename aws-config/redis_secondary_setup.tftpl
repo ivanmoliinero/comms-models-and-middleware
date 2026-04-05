@@ -15,8 +15,11 @@ usermod -aG docker ec2-user
 
 # Define the Redis configuration variables
 REDIS_PASS="admin123"
+MASTER_IP="${primary_ip}"
 
-# Run the Redis container in cluster mode using the host network
+# 1. Run the Redis Replica container
+# We also apply the min-replicas rules here so that if this replica is promoted
+# to master, it inherits the strict data-loss prevention rules.
 docker run -d \
   --name redis-server \
   --net host \
@@ -25,15 +28,38 @@ docker run -d \
   redis-server \
   --requirepass $REDIS_PASS \
   --masterauth $REDIS_PASS \
-  --cluster-enabled yes \
-  --cluster-config-file nodes.conf \
-  --cluster-node-timeout 5000 \
-  --appendonly yes
+  --replicaof $MASTER_IP 6379 \
+  --appendonly yes \
+  --min-replicas-to-write 1 \
+  --min-replicas-max-lag 10
 
-# Wait loop: Blocks execution until the Redis application inside the container is fully running
-echo "Waiting for Redis container to initialize..."
+# Wait loop: Blocks execution until the local Redis container is fully running
+echo "Waiting for local Redis Replica container to initialize..."
 while ! docker exec redis-server redis-cli -a $REDIS_PASS ping | grep -q "PONG"; do
   sleep 5
 done
 
-echo "Secondary node ready and waiting for cluster assignment."
+# 2. Configure Sentinel
+# This sentinel MUST point to the MASTER_IP, not localhost.
+mkdir -p /etc/redis
+cat << EOF > /etc/redis/sentinel.conf
+port 26379
+sentinel monitor mymaster $MASTER_IP 6379 2
+sentinel auth-pass mymaster $REDIS_PASS
+sentinel down-after-milliseconds mymaster 5000
+sentinel failover-timeout mymaster 10000
+EOF
+
+# Ensure the file is writable by the container
+chmod 666 /etc/redis/sentinel.conf
+
+# 3. Run the Sentinel container on the same host
+docker run -d \
+  --name redis-sentinel \
+  --net host \
+  --restart always \
+  -v /etc/redis/sentinel.conf:/usr/local/etc/redis/sentinel.conf \
+  redis:latest \
+  redis-sentinel /usr/local/etc/redis/sentinel.conf
+
+echo "Redis Replica and Sentinel are successfully running."

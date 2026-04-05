@@ -15,10 +15,9 @@ usermod -aG docker ec2-user
 
 # Define the Redis configuration variables
 REDIS_PASS="admin123"
-# Receives a space-separated string of IPs from Terraform
-SECONDARY_IPS="${secondary_ips}"
 
-# Run the Redis container in cluster mode using the host network
+# 1. Run the Redis Master container
+# We enforce the strict replication rules to prevent split-brain data loss
 docker run -d \
   --name redis-server \
   --net host \
@@ -26,35 +25,39 @@ docker run -d \
   redis:latest \
   redis-server \
   --requirepass $REDIS_PASS \
-  --masterauth $REDIS_PASS \
-  --cluster-enabled yes \
-  --cluster-config-file nodes.conf \
-  --cluster-node-timeout 5000 \
-  --appendonly yes
+  --appendonly yes \
+  --min-replicas-to-write 1 \
+  --min-replicas-max-lag 10
 
-# Wait loop: Blocks execution until the Redis application inside the container is fully running
-echo "Waiting for Redis container to initialize..."
+# Wait loop: Blocks execution until the local Redis container is fully running
+echo "Waiting for local Redis Master container to initialize..."
 while ! docker exec redis-server redis-cli -a $REDIS_PASS ping | grep -q "PONG"; do
   sleep 5
 done
 
-# Wait a few extra seconds to ensure secondary nodes are fully accepting connections
-sleep 10
+# 2. Configure Sentinel
+# Sentinel requires a configuration file because it rewrites it dynamically
+# when failovers occur.
+mkdir -p /etc/redis
+cat << EOF > /etc/redis/sentinel.conf
+port 26379
+# Quorum is set to 2 (requires 2 out of 3 sentinels to agree on a failure)
+sentinel monitor mymaster 127.0.0.1 6379 2
+sentinel auth-pass mymaster $REDIS_PASS
+sentinel down-after-milliseconds mymaster 5000
+sentinel failover-timeout mymaster 10000
+EOF
 
-# Retrieve the local private IP directly from the OS network insterface
-# hostname -I returns all IPs, awk '{print $1}' extracts the primary private IP
-LOCAL_IP=$(hostname -I | awk '{print $1}')
+# Ensure the file is writable by the container
+chmod 666 /etc/redis/sentinel.conf
 
-# Dynamically construct the target nodes string
-CLUSTER_TARGETS="$LOCAL_IP:6379"
-for IP in $SECONDARY_IPS; do
-  CLUSTER_TARGETS="$CLUSTER_TARGETS $IP:6379"
-done
+# 3. Run the Sentinel container on the same host
+docker run -d \
+  --name redis-sentinel \
+  --net host \
+  --restart always \
+  -v /etc/redis/sentinel.conf:/usr/local/etc/redis/sentinel.conf \
+  redis:latest \
+  redis-sentinel /usr/local/etc/redis/sentinel.conf
 
-# Execute the cluster creation command automatically
-echo "Initializing Redis Cluster with nodes: $CLUSTER_TARGETS"
-# Variable expansion without quotes allows bash to pass the targets as separate arguments
-docker exec redis-server redis-cli -a $REDIS_PASS --cluster create \
-  $CLUSTER_TARGETS \
-  --cluster-replicas 0 \
-  --cluster-yes
+echo "Redis Master and Sentinel are fully operational."

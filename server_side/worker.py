@@ -6,6 +6,7 @@ consistency backend.
 
 import pika
 import redis
+from redis.sentinel import Sentinel
 import argparse
 import time
 
@@ -52,9 +53,8 @@ START_TIME_KEY='start_time'
 END_TIME_KEY='end_time'
 
 # Initialize the argument parser
-parser = argparse.ArgumentParser(description="RabbitMQ and Redis connection script.")
+parser = argparse.ArgumentParser(description="RabbitMQ and Redis Sentinel connection script.")
 
-# Define the argument with 'localhost' as the default fallback value for RabbitMQ
 parser.add_argument(
     '--rabbitmq-host',
     type=str,
@@ -62,20 +62,20 @@ parser.add_argument(
     help='Host address for RabbitMQ'
 )
 
-# Define the argument with 'localhost' as the default fallback value for Redis
+# Modified to accept a comma-separated list of Sentinel IPs
 parser.add_argument(
-    '--redis-host',
+    '--redis-sentinels',
     type=str,
     default='localhost',
-    help='Host address for Redis'
+    help='Comma-separated host addresses for Redis Sentinels'
 )
 
 # Parse the command-line arguments
 args, unknown = parser.parse_known_args()
 
-# Obtain hosts from the parsed arguments
 rabbitmq_host = args.rabbitmq_host
-redis_host = args.redis_host
+# Parse the string into a list of tuples: [('IP1', 26379), ('IP2', 26379), ...]
+sentinel_hosts = [(ip.strip(), 26379) for ip in args.redis_sentinels.split(',')]
 
 QUEUE_NAME='ticket.requests'
 EXCHANGE_NAME='ticket.acquisition'
@@ -88,40 +88,60 @@ auto_incr: redis.commands.core.Script
 def process_message(ch, method, properties, body):
     """
     Callback function to process incoming messages.
-    Manual ACK is strictly enforced here.
+    Includes fail-safe logic for Redis partitions.
     """
     message = body.decode('utf-8')
     print(f"[*] Received: {message}")
 
     global auto_incr
-    result = auto_incr(keys=[COUNTER_VAR, START_TIME_KEY, END_TIME_KEY],
-                       args=[MAX_TICKETS])
+    try:
+        # The sentinel-managed client automatically discovers the new master
+        # if a failover occurred before this call.
+        result = auto_incr(keys=[COUNTER_VAR, START_TIME_KEY, END_TIME_KEY],
+                           args=[MAX_TICKETS])
 
-    # TODO: Where to store metrics of accepted and erased???
+        # Explicit manual ACK when Redis operation is successfully completed.
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    # Explicit manual ACK when op is completed.
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+    except redis.exceptions.RedisError as e:
+        # This catches ConnectionError, ReadOnlyError, and ResponseError (NOQUORUM).
+        print(f"[!] Redis execution failed: {e}")
+        print("[*] NACKing message to prevent data loss. Requeueing...")
+
+        # NACK the message so RabbitMQ puts it back in the queue.
+        # It will be safely redelivered.
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+
+        # Brief pause to prevent a tight loop if the master is temporarily down
+        time.sleep(1)
 
 
-def connect_to_redis(host, password, port=6379, delay=5):
+def connect_to_redis_sentinel(sentinel_list, password, delay=5):
     """
-    Attempts to connect to Redis infinitely until successful.
+    Attempts to connect to the Redis Sentinel cluster and fetch the master.
     """
     while True:
         try:
-            print(f"[*] Attempting to connect to Redis at {host}...")
-            r_client = redis.Redis(
-                host=host,
-                port=port,
+            print(f"[*] Attempting to connect to Redis Sentinels at {sentinel_list}...")
+
+            # Initialize the Sentinel object
+            # Provide the password to authenticate with the sentinels themselves
+            sentinel_manager = Sentinel(sentinel_list, sentinel_kwargs={'password': password})
+
+            # master_for returns a dynamic client connected to the current master
+            r_client = sentinel_manager.master_for(
+                'mymaster',
                 password=password,
                 decode_responses=True
             )
-            # Ping verifies the connection is actually established
+
+            # Ping verifies the connection to the actual Master is established
             if r_client.ping():
-                print("[*] Successfully connected to Redis.")
+                print("[*] Successfully connected to Redis Master via Sentinel.")
                 return r_client
-        except redis.exceptions.ConnectionError:
-            print(f"[!] Redis connection failed. Retrying in {delay} seconds...")
+
+        except (redis.exceptions.ConnectionError, redis.sentinel.MasterNotFoundError) as e:
+            print(f"[!] Redis Sentinel connection failed: {e}. Retrying in {delay} seconds...")
             time.sleep(delay)
 
 
@@ -133,9 +153,8 @@ def start_worker():
     global client
     global auto_incr
 
-    # 1. Establish Redis connection with retry mechanism FIRST.
-    # We do this outside the RabbitMQ loop so we don't reload Redis on every RMQ drop.
-    client = connect_to_redis(redis_host, REDIS_PASS)
+    # 1. Establish Redis connection using Sentinel
+    client = connect_to_redis_sentinel(sentinel_hosts, REDIS_PASS)
     auto_incr = client.register_script(lua_script)
 
     # 2. Main loop for RabbitMQ connection and consumption
@@ -145,7 +164,6 @@ def start_worker():
                   f"RabbitMQ at {rabbitmq_host}...")
             credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
 
-            # heartbeat ensures the connection is kept alive behind the NLB
             parameters = pika.ConnectionParameters(
                 host=rabbitmq_host,
                 credentials=credentials,
@@ -156,20 +174,14 @@ def start_worker():
             connection = pika.BlockingConnection(parameters)
             channel = connection.channel()
 
-            # Ensure the queue exists (this operation is idempotent)
             channel.queue_declare(
                 queue=QUEUE_NAME,
                 durable=True,
                 arguments={'x-queue-type': 'quorum'}
             )
 
-            # basic_qos guarantees that RabbitMQ will not assign more than 1
-            # message to this worker at a time until the previous one is ACKed.
             channel.basic_qos(prefetch_count=1)
 
-            # Register the consumer.
-            # auto_ack=False is mandatory to prevent automatic deletion of
-            # messages.
             channel.basic_consume(
                 queue=QUEUE_NAME,
                 on_message_callback=process_message,
@@ -179,24 +191,21 @@ def start_worker():
             print(" [*] Worker is ready and waiting for messages. "
                   "To exit press CTRL+C")
 
-            # This is a blocking call. It will stay here as long as the
-            # connection is alive.
             channel.start_consuming()
 
-        # Catch connection drops, NLB timeouts, or node failures
         except (pika.exceptions.AMQPConnectionError,
                 pika.exceptions.ConnectionClosedByBroker,
                 pika.exceptions.StreamLostError) as error:
             print(f"\n[!] Connection to RabbitMQ lost: {error}")
             print("[*] Waiting 3 seconds before reconnecting...")
             time.sleep(3)
-            continue # Restarts the while True loop
+            continue
 
         except KeyboardInterrupt:
             print("\n [*] Worker shutdown sequence initiated.")
             if 'connection' in locals() and connection.is_open:
                 connection.close()
-            break # Exits the while True loop
+            break
 
 
 if __name__ == '__main__':
