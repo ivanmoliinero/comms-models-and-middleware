@@ -126,7 +126,7 @@ def connect_to_redis_sentinel(sentinel_list, password, delay=5):
 
             # Initialize the Sentinel object
             # Provide the password to authenticate with the sentinels themselves
-            sentinel_manager = Sentinel(sentinel_list, sentinel_kwargs={'password': password})
+            sentinel_manager = Sentinel(sentinel_list)
 
             # master_for returns a dynamic client connected to the current master
             r_client = sentinel_manager.master_for(
