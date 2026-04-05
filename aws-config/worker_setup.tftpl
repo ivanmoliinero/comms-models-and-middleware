@@ -41,7 +41,7 @@ After=network.target
 Type=simple
 User=ec2-user
 WorkingDirectory=$TARGET_DIR
-ExecStart=/home/ec2-user/venv/bin/python3 $TARGET_DIR/server_side/worker.py --rabbitmq-host $RABBITMQ_HOST --redis-sentinels $REDIS_SENTINELS
+ExecStart=/home/ec2-user/venv/bin/python3 -u /home/ec2-user/comms-models-and-middleware/server_side/worker.py --rabbitmq-host $RABBITMQ_HOST --redis-sentinels $REDIS_SENTINELS
 # Automatically restart the service if it crashes or exits
 Restart=always
 RestartSec=5
