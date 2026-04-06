@@ -5,6 +5,7 @@ import argparse
 START_TIME_KEY = 'start_time'
 END_TIME_KEY = 'end_time'
 COUNTER_KEY = 'ticket_counter'
+SEAT_PATTERN = 'seat:*'
 
 # Initialize the argument parser
 parser = argparse.ArgumentParser(
@@ -26,7 +27,7 @@ redis_host = args.redis_host
 def calculate_benchmark_time():
     """
     Connects to Redis, retrieves the start/end timestamps and the counter,
-    calculates the elapsed time, and resets all three keys to 0.
+    calculates the elapsed time, and resets all keys (including seats) for a new run.
     """
     # Establish connection to Redis
     client = redis.Redis(
@@ -46,30 +47,41 @@ def calculate_benchmark_time():
         print("Error: The benchmark timestamps are missing in Redis.")
         print(
             "Ensure the worker script has processed the first and last messages.")
-        return
+    else:
+        # Convert the string timestamps to floating-point numbers
+        start_time = float(start_time_str)
+        end_time = float(end_time_str)
 
-    # Convert the string timestamps to floating-point numbers
-    start_time = float(start_time_str)
-    end_time = float(end_time_str)
+        # Handle the counter value
+        tickets_processed = int(counter_str) if counter_str else 0
 
-    # Handle the counter value
-    tickets_processed = int(counter_str) if counter_str else 0
+        # Calculate the delta
+        total_time = end_time - start_time
 
-    # Calculate the delta
-    total_time = end_time - start_time
-
-    print(f"Benchmark Start Time: {start_time}")
-    print(f"Benchmark End Time:   {end_time}")
-    print(f"Total tickets processed: {tickets_processed}")
-    print(f"Total processing time: {total_time:.4f} seconds")
+        print(f"Benchmark Start Time: {start_time}")
+        print(f"Benchmark End Time:   {end_time}")
+        print(f"Total tickets processed: {tickets_processed}")
+        print(f"Total processing time: {total_time:.4f} seconds")
 
     # Reset variables to 0 as requested
     client.set(START_TIME_KEY, 0)
     client.set(END_TIME_KEY, 0)
     client.set(COUNTER_KEY, 0)
-
     print(
         "Variables 'start_time', 'end_time', and 'ticket_counter' have been reset to 0.")
+
+    # Safely find and delete all seat assignments using an iterator
+    seat_keys = list(client.scan_iter(match=SEAT_PATTERN, count=1000))
+
+    if seat_keys:
+        # Delete in chunks to prevent blocking the single-threaded Redis server
+        # with a massive payload in a single DEL command.
+        chunk_size = 1000
+        for i in range(0, len(seat_keys), chunk_size):
+            client.delete(*seat_keys[i:i + chunk_size])
+        print(f"Deleted {len(seat_keys)} seat assignment keys.")
+    else:
+        print("No seat assignment keys found to delete.")
 
 
 if __name__ == '__main__':
