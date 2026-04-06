@@ -17,6 +17,8 @@ usermod -aG docker ec2-user
 ERLANG_COOKIE="injected_shared_cookie_string"
 RABBITMQ_USER="admin"
 RABBITMQ_PASS="admin123"
+GRAFANA_USER="${grafana_user_id}"
+GRAFANA_KEY="${grafana_api_key}"
 
 # Run the RabbitMQ container with the management plugin
 # Port 5672: AMQP protocol for clients and workers
@@ -30,6 +32,7 @@ docker run -d \
   -p 15672:15672 \
   -p 4369:4369 \
   -p 25672:25672 \
+  -p 15692:15692 \
   -e RABBITMQ_ERLANG_COOKIE=$ERLANG_COOKIE \
   -e RABBITMQ_DEFAULT_USER=$RABBITMQ_USER \
   -e RABBITMQ_DEFAULT_PASS=$RABBITMQ_PASS \
@@ -55,3 +58,38 @@ docker exec rabbitmq-server rabbitmqctl stop_app
 docker exec rabbitmq-server rabbitmqctl reset
 docker exec rabbitmq-server rabbitmqctl join_cluster rabbit@$PRIMARY_HOSTNAME
 docker exec rabbitmq-server rabbitmqctl start_app
+
+#################################### METRICS CONFIG ####################################
+docker exec rabbitmq-server rabbitmq-plugins enable rabbitmq_prometheus
+
+# Create the Prometheus Agent configuration file
+# The target is the local RabbitMQ metrics port (15692)
+mkdir -p /etc/prometheus
+cat << EOF > /etc/prometheus/prometheus.yml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'rabbitmq_node'
+    static_configs:
+      - targets: ['127.0.0.1:15692']
+
+remote_write:
+  - url: "https://prometheus-prod-66-prod-us-east-3.grafana.net/api/prom/push"
+    basic_auth:
+      username: "$GRAFANA_USER"
+      password: "$GRAFANA_KEY"
+EOF
+
+# 2. Run Prometheus
+# We removed the failing feature flag and replaced it with --storage.tsdb.retention.time
+# This forces Prometheus to only keep 2 hours of local metrics, preventing disk exhaustion
+docker run -d \
+  --name prometheus-agent \
+  --net host \
+  --restart always \
+  -v /etc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml \
+  prom/prometheus:latest \
+  --config.file=/etc/prometheus/prometheus.yml \
+  --storage.tsdb.retention.time=2h
+################################## END METRICS CONFIG ##################################

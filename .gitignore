@@ -102,3 +102,4 @@ venv.bak/
 .terraform.lock.hcl
 .terraform/
 terraform.tfstate*
+terraform.tfvars

@@ -172,7 +172,10 @@ resource "aws_instance" "rabbitmq_primary" {
   # Prefab key of labs
   key_name               = "vockey"
 
-  user_data = templatefile("rabbitmq_setup.tftpl", {})
+  user_data = templatefile("rabbitmq_setup.tftpl", {
+    grafana_user_id = var.grafana_username,
+    grafana_api_key = var.grafana_api_key
+  })
 
   tags = {
     Name = "task1-RabbitMQ-Primary-Node"
@@ -197,7 +200,9 @@ resource "aws_instance" "rabbitmq_nodes" {
 
   # They need private IP of main node in order to be setup.
   user_data = templatefile("rabbitmq_secondary_setup.tftpl", {
-    primary_ip = aws_instance.rabbitmq_primary[0].private_ip
+    primary_ip = aws_instance.rabbitmq_primary[0].private_ip,
+    grafana_user_id = var.grafana_username,
+    grafana_api_key = var.grafana_api_key
   })
 
   tags = {

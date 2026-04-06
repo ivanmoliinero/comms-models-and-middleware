@@ -42,3 +42,16 @@ variable "ec2_redis_node" {
   description = "The EC2 instance type for RabbitMQ servers."
   default     = "t3.small"
 }
+
+################################## SENSITIVE VARS ##################################
+variable "grafana_api_key" {
+  type        = string
+  description = "API Key for Grafana Cloud remote write"
+  sensitive   = true
+}
+
+variable "grafana_username" {
+  type        = string
+  description = "Username ID for Grafana Cloud"
+  sensitive   = true
+}
