@@ -10,37 +10,40 @@ from redis.sentinel import Sentinel
 import argparse
 import time
 
-# This script ensures consistency while measuring total time of processing.
+# This script ensures atomic seat reservation and measures total time of processing.
 lua_script = '''
--- KEYS[1] = counter_key
--- KEYS[2] = start_time_key
--- KEYS[3] = end_time_key
--- ARGV[1] = max_value
+-- KEYS[1] = seat_key
+-- KEYS[2] = counter_key
+-- KEYS[3] = start_time_key
+-- KEYS[4] = end_time_key
+-- ARGV[1] = client_id
+-- ARGV[2] = max_value
 
-local current_value = tonumber(redis.call('GET', KEYS[1]) or '0')
-local max_value = tonumber(ARGV[1])
+-- SETNX returns 1 if the key was set (seat available), 0 if it already existed.
+local seat_assigned = redis.call('SETNX', KEYS[1], ARGV[1])
 
--- If this is the absolute first message being processed, record the start time
-if current_value == 0 then
-    -- TIME returns an array: [unix_seconds, microseconds]
-    local server_time = redis.call('TIME')
-    local timestamp_str = server_time[1] .. '.' .. server_time[2]
-    redis.call('SET', KEYS[2], timestamp_str)
-end
+if seat_assigned == 1 then
+    -- Seat successfully assigned, increment the global counter of sold tickets
+    local current_value = redis.call('INCR', KEYS[2])
+    local max_value = tonumber(ARGV[2])
 
-if current_value < max_value then
-    local new_val = redis.call('INCR', KEYS[1])
-    
-    -- If this increment hits the max limit, record the end time
-    if new_val == max_value then
+    -- If this is the absolute first successful reservation, record the start time
+    if current_value == 1 then
         local server_time = redis.call('TIME')
         local timestamp_str = server_time[1] .. '.' .. server_time[2]
         redis.call('SET', KEYS[3], timestamp_str)
     end
+
+    -- If this increment hits the max limit, record the end time
+    if current_value == max_value then
+        local server_time = redis.call('TIME')
+        local timestamp_str = server_time[1] .. '.' .. server_time[2]
+        redis.call('SET', KEYS[4], timestamp_str)
+    end
     
-    return new_val
+    return 1 -- Success
 else
-    return -1
+    return 0 -- Failed: Seat already taken
 end
 '''
 
@@ -88,19 +91,32 @@ auto_incr: redis.commands.core.Script
 def process_message(ch, method, properties, body):
     """
     Callback function to process incoming messages.
-    Includes fail-safe logic for Redis partitions.
+    Parses the BUY command and executes the Lua script for atomic reservation.
     """
     message = body.decode('utf-8')
     print(f"[*] Received: {message}")
+
+    # Parse the message format: BUY <client_id> <seat_id> <request_id>
+    parts = message.strip().split(' ')
+    if len(parts) != 4 or parts[0] != 'BUY':
+        print("[!] Invalid message format. Discarding.")
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        return
+
+    action, client_id, seat_id, request_id = parts
+    seat_key = f"seat:{seat_id}"
 
     global auto_incr
     try:
         # The sentinel-managed client automatically discovers the new master
         # if a failover occurred before this call.
-        result = auto_incr(keys=[COUNTER_VAR, START_TIME_KEY, END_TIME_KEY],
-                           args=[MAX_TICKETS])
+        result = auto_incr(keys=[seat_key, COUNTER_VAR, START_TIME_KEY, END_TIME_KEY],
+                           args=[client_id, MAX_TICKETS])
 
-        # Explicit manual ACK when Redis operation is successfully completed.
+        # TODO: how to process result.
+
+        # Explicit manual ACK when Redis operation is successfully completed,
+        # regardless of whether the seat was acquired or already taken.
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     except redis.exceptions.RedisError as e:
@@ -125,7 +141,8 @@ def connect_to_redis_sentinel(sentinel_list, password, delay=5):
             print(f"[*] Attempting to connect to Redis Sentinels at {sentinel_list}...")
 
             # Initialize the Sentinel object
-            # Provide the password to authenticate with the sentinels themselves
+            # We omit sentinel_kwargs={'password': password} because our Sentinel
+            # processes do not require authentication on port 26379.
             sentinel_manager = Sentinel(sentinel_list)
 
             # master_for returns a dynamic client connected to the current master
@@ -160,8 +177,7 @@ def start_worker():
     # 2. Main loop for RabbitMQ connection and consumption
     while True:
         try:
-            print(f"[*] Attempting to connect to "
-                  f"RabbitMQ at {rabbitmq_host}...")
+            print(f"[*] Attempting to connect to RabbitMQ at {rabbitmq_host}...")
             credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
 
             parameters = pika.ConnectionParameters(
@@ -188,8 +204,7 @@ def start_worker():
                 auto_ack=False
             )
 
-            print(" [*] Worker is ready and waiting for messages. "
-                  "To exit press CTRL+C")
+            print(" [*] Worker is ready and waiting for messages. To exit press CTRL+C")
 
             channel.start_consuming()
 
