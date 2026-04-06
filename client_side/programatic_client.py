@@ -78,7 +78,7 @@ def client_publisher(lines_list):
 
 
 if __name__ == '__main__':
-    source_file = 'benchmarks/benchmark_unnumbered_20000.txt'
+    source_file = 'benchmarks/benchmark_numbered_60000.txt'
 
     # Read the entire file into main memory
     with open(source_file, 'r') as f:
