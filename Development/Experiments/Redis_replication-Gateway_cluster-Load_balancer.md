@@ -5,7 +5,7 @@ experiment: RedisReplication+GatewayCluster+LoadBalancer
 > This experiment has been performed under lab conditions, so bear in mind that **resource limits** have been applied to every component if it.
 
 # Other preparations
-Same as [[Development/Experiments/Redis-OpenResty|Redis-OpenResty]]
+Same as [[Development/Experiments/Redis-OpenResty|Redis-OpenResty]].
 
 # Redis
 1. Launch the **master**
@@ -14,7 +14,7 @@ sudo docker run -d \
   --name redis-master \
   --network redis-test-net \
   -p 6379:6379 \
-  -v $(pwd)/data:/data \
+  -v $(pwd)/container-data:/data \
   redis:latest redis-server --appendonly yes --appendfsync always
 ```
 
@@ -56,7 +56,7 @@ The **separation** of the counter introduces a new possible undesired situation:
 
 The logical separation introduces another undesired situation: The *client-1*'s first purchase goes to the *redis-server-1* and there are tickets available, *redis-server-1* will perform SADD of its tracking ID. If this tracking ID isn't added to every redis server, a second request from the *client-1* with the same tracking ID could be performed; if this second request ends in the *redis-server-2* where the tracking ID is not known, and tickets are yet available, the same tracking ID would have caused 2 sells, which is an strict situation we've defined to not be allowed. This could be solved the following ways:
 - Using **asynchronous replication** of the *set* that keeps the IDs among all the masters => This would cause an incredible amount of network traffic as the system grew, so its not suitable for scalability.
-- #decision Using **consistent routing routing**: If the *client-1* is always treated by the *redis-server-1* **first**, this situation would be avoided. What it means by "*being treated first*" by *redis-server-1* means that if such server runs out of tickets, clients routed to this server must be able to buy from another redis-server, so after a buy operation returns a *"sold out*" code, the gateway that initiated the request must try with a second redis-server, and so on. #tradeoff Despite this solution **increases the load** of the gateways and the **latency** due to the fact that some purchases may execute a BUY operation to each redis-server to be able to buy, this is the best solution found. #improvement #further-work The **latency** problem could be reduced by **caching** whether a redis-server has run out of tickets or not, so the gateways don't even try to buy on those.
+- #decision Using **consistent routing routing**: If the *client-1* is always treated by the *redis-server-1* **first**, this situation would be avoided. What it means by "*being treated first*" by *redis-server-1* means that if such server runs out of tickets, clients routed to this server must be able to buy from another redis-server, so after a buy operation returns a *"sold out*" code, the gateway that initiated the request must try with a second redis-server, and so on. #tradeoff Despite this solution **increases the load** of the gateways and the **latency** due to the fact that some purchases may execute a BUY operation to each redis-server to be able to buy, this is the best solution found. #tradeoff Another important consequence is that the total order of the first BUY operation of each client may not be respected since one client could be luckier than other if the load balancer redirects him to a *plenty of tickets* server rather than a *sold-out* one. In this case, even if the unlucky client sent the request first, he may not get a ticket due to the increased latency to get to the *available-yet* server, contrary to the other lucky client. #improvement #further-work The **latency** problem could be reduced by **caching** whether a redis-server has run out of tickets or not, so the gateways don't even try to buy on those.
 
 [solution-to:: Lack of consistency]
 Since [[#^4104cb]] has caused the nodes' data to be disjoint, consistency problems caused by asynchronous replication would not appear. 
@@ -72,7 +72,7 @@ The final proposition combining the solutions to the other problems is: **Shardi
 - **Sentinel** to monitor nodes and make a *replica* node to take over its *master* quickly when it fails. Whenever the original *master* node recovers, it will take the role of *replica* from there on out.
 
 > [!important] New version
-> The **new version** solving all these problems is #todo
+> The **new version** solving all these problems is [[Development/Experiments/RedisSharding-GatewayCluster-LoadBalancer|RedisSharding-GatewayCluster-LoadBalancer]]
 
 ## Checks
 ### Replica instance has also the initial state

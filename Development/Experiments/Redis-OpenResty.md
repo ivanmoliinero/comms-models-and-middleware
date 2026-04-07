@@ -21,6 +21,10 @@ docker run -d \
 ```
 
 2. Load the function to Redis
+
+>[!note]
+> You must execute the following commands (steps 2 and 3) on the Redis server.
+
 ```redis-cli
 FUNCTION LOAD REPLACE "#!lua name=ticket_sales\nredis.register_function('buy_ticket', function(keys, args)\n  if redis.call('SISMEMBER', keys[1], args[1]) == 1 then\n    return -1\n  else\n    local ticket_number = tonumber(redis.call('DECR', keys[2]))\n    if ticket_number < 0 then\n      return -2\n    else\n      redis.call('SADD', keys[1], args[1])\n      return ticket_number\n    end\n  end\nend)"
 ```
@@ -54,6 +58,14 @@ docker run -d \
 > [!important]
 > The previous command must be run from the path that contains the [[software-testing/redis-openResty/gateway/nginx.conf]] file
 
+An important detail must be commented about the `nginx.conf` file used for the gateway.
+
+```embed-shell
+PATH: "vault://software-testing/redis-openResty/gateway/nginx.conf"
+LINES: "6-9"
+```
+
+Note the `resolver` config it's necessary since *nginx* bypasses the OS DNS, and as we are using Docker's DNS we must indicate it to make the gateway see the Redis server's domain name (container's name).
 # Checks
 ## Try to connect to the API Gateway
 ```bash
