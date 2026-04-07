@@ -40,7 +40,7 @@ sudo docker run -d \
 > - [problem:: Lack of scalability]
 > - [problem:: Lack of consistency]
 
-> [!fail]
+> [!fail] Problem
 > [problem:: Fault tolerance]
 > With this schema, fault tolerance it's not yet implemented; if the **master crashes**, the gateways would just keep sending requests to the same fallen master. Furthermore, the replica would not even take over the role master because we nowhere added instructions to do it.
 
@@ -58,11 +58,60 @@ The logical separation introduces another undesired situation: The *client-1*'s 
 - Using **asynchronous replication** of the *set* that keeps the IDs among all the masters => This would cause an incredible amount of network traffic as the system grew, so its not suitable for scalability.
 - #decision Using **consistent routing routing**: If the *client-1* is always treated by the *redis-server-1* **first**, this situation would be avoided. What it means by "*being treated first*" by *redis-server-1* means that if such server runs out of tickets, clients routed to this server must be able to buy from another redis-server, so after a buy operation returns a *"sold out*" code, the gateway that initiated the request must try with a second redis-server, and so on. #tradeoff Despite this solution **increases the load** of the gateways and the **latency** due to the fact that some purchases may execute a BUY operation to each redis-server to be able to buy, this is the best solution found. #tradeoff Another important consequence is that the total order of the first BUY operation of each client may not be respected since one client could be luckier than other if the load balancer redirects him to a *plenty of tickets* server rather than a *sold-out* one. In this case, even if the unlucky client sent the request first, he may not get a ticket due to the increased latency to get to the *available-yet* server, contrary to the other lucky client. #improvement #further-work The **latency** problem could be reduced by **caching** whether a redis-server has run out of tickets or not, so the gateways don't even try to buy on those.
 
-[solution-to:: Lack of consistency]
-Since [[#^4104cb]] has caused the nodes' data to be disjoint, consistency problems caused by asynchronous replication would not appear. 
-
 [solution-to:: Fault tolerance]
-#decision Since [[#^4104cb]] we have a **sharded** database system. To introduce fault tolerance, we could add **master-replica** to each shard (this is already a broadly used architecture). A **sentinel** would monitor each node, making a *replica* quickly take over its *master* if it fails, ensuring availability.
+#decision Since [[#^4104cb]] we have a **sharded** database system. To introduce fault tolerance, we could add **master-replica** to each shard (this is already a broadly used architecture). A **sentinel** would monitor each node, making a *replica* quickly take over its *master* if it fails, ensuring availability, but this introduces an undesired situation when using **asynchronous replication** that is the default method. This is solved in the [[#^ac5a42|solution to lack of consistency]] 
+^6d5c28
+
+[solution-to:: Lack of consistency]
+Since [[#^4104cb]] has caused the nodes' data to be disjoint, consistency problems caused by asynchronous replication wouldn't have appeared if the [[#^6d5c28|solution to fault tolerance]] wouldn't have introduced the **master-replica** architecture. There is now a situation where consistency fails:
+What if an operation were successfully stored in disk (in the master), acknowledged to the client, but a random network error stopped the operation from reaching the replica. In this moment, if the master crashed before being able to resend it, the replica would be promoted to master with one more ticket than the truly available because it didn't receive the last update, consequently selling more than the available.
+A **possible solution** to this situation is to use **synchronous replication**, which in Redis can be approximately implemented using the `WAIT` command. The problem is that it cannot be executed within a LUA function as usual because it would block the execution, it would just return ASAP number of instances that acknowledged the operation, but since we would execute it immediately after the write operation, we would always get a *0*. A **solution** to this could be moving the `WAIT` to the gateway; whenever it received the response of the `buy_ticket` function, it would perform a `WAIT` to check how many replicas have acknowledged the operation. If the value were not enough (as we have 1 replica per shard, not enough is just 0), the gateway would have to perform a rollback, executing `INCR tickets-counter` and `SREM purchased_tracking_ids client_id`.
+^ac5a42
+
+## benchmark:: WAIT inside `buy_ticket`
+To perform this benchmark we must keep the same setup of this experiment except for the `buy_ticket` function.
+
+### BUY operation with WAIT
+```redis-cli
+FUNCTION LOAD REPLACE "#!lua name=ticket_sales\nredis.register_function('buy_ticket', function(keys, args)\n  if redis.call('SISMEMBER', keys[1], args[1]) == 1 then\n    return -1\n  else\n    local ticket_number = tonumber(redis.call('DECR', keys[2]))\n    if ticket_number < 0 then\n      return -2\n    else\n      redis.call('SADD', keys[1], args[1])\n   redis.call('WAIT', 1, 0)\n   return ticket_number\n    end\n  end\nend)"
+```
+
+In a human readable form:
+```lua
+if redis.call('SISMEMBER', keys[1], args[1]) == 1 then
+   return -1
+else
+    local ticket_number = tonumber(redis.call('DECR', keys[2]))
+	if ticket_number < 0 then
+		return -2
+    else
+		redis.call('SADD', keys[1], args[1])
+		redis.call('WAIT', 1, 0)
+		return ticket_number
+	end
+end
+```
+
+### Results
+![[unnumbered-tickets-master-replica-WAIT-BUY-function-V1.0-benchmark.csv]]
+```csvtable
+columns:
+- test
+- rps
+- p99_latency_ms	
+source: [[unnumbered-tickets-master-replica-WAIT-BUY-function-V1.0-benchmark.csv]]
+```
+
+The same benchmark has been performed with the replica stopped to see its behavior.
+![[unnumbered-tickets-master-replicaPaused-WAIT-BUY-function-V1.0-benchmark.csv]]
+```csvtable
+columns:
+- test
+- rps
+- p99_latency_ms	
+source: [[unnumbered-tickets-master-replicaPaused-WAIT-BUY-function-V1.0-benchmark.csv]]
+```
+#todo Check why its faster with the replica paused.
 
 ---
 
@@ -70,9 +119,6 @@ The final proposition combining the solutions to the other problems is: **Shardi
 - **Sharding** for the logical separation of the `ticket-counter`.
 - **Replication** to quickly take over a failed node and ensure availability.
 - **Sentinel** to monitor nodes and make a *replica* node to take over its *master* quickly when it fails. Whenever the original *master* node recovers, it will take the role of *replica* from there on out.
-
-> [!important] New version
-> The **new version** solving all these problems is [[Development/Experiments/RedisSharding-GatewayCluster-LoadBalancer|RedisSharding-GatewayCluster-LoadBalancer]]
 
 ## Checks
 ### Replica instance has also the initial state
@@ -85,7 +131,7 @@ $ docker exec -it redis-replica redis-cli
 ```
 
 ## Benchmarks
-### AOF persistence with exhaustive *fsync*
+### benchmark:: AOF persistence with exhaustive *fsync*
 Since AOF persistence with *fsync* for each request introduces latency and slows down the system, it must be tested to check whether it now fills our requirements or not.
 
 ```bash
@@ -98,10 +144,10 @@ docker run --rm \
 ```
 
 > [!note] 
-> This is the same benchmark performed at [[Development/Redis#Benchmark Hotspots]].
+> This is the same benchmark performed at [[Development/Redis#Benchmark Unnumbered tickets - unnumbered-tickets-request-lifecycle V0.1 - BUY operation]].
 
 #### Results
-![[numbered-tickets-hotspots-benchmark.csv]]
+![[unnumbered-tickets-master-replica-BUY-function-V0.1-benchmark.csv]]
 ```csvtable
 columns:
 - test
@@ -116,3 +162,7 @@ Same as [[Development/Experiments/Redis-Gateway_cluster-Load_balancer#Gateways c
 
 # Load balancer
 Same as [[Development/Experiments/Redis-Gateway_cluster-Load_balancer#Load balancer|Redis-Gateway_cluster-Load_balancer#Load balancer]].
+
+# Next steps
+- Test the **sharding** idea proposed in the [[#^4104cb]]. The experiment where this is tested is [[Development/Experiments/RedisSharding-GatewayCluster-LoadBalancer|RedisSharding-GatewayCluster-LoadBalancer]].
+- #todo Test the translation of the `WAIT` operation to the gateways.

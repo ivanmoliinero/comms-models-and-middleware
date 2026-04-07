@@ -1,6 +1,9 @@
 ---
 experiment: RedisSharding+GatewayCluster+LoadBalancer
 ---
+# Brief
+This experiment tries the solutions proposed in [[Development/Experiments/Redis_replication-Gateway_cluster-Load_balancer|Redis_replication-Gateway_cluster-Load_balancer]]. We simplify the system to focus on the database **sharding**, so the **gateways cluster** and **load balancer** are removed for this.
+
 > [!warning]
 > This experiment has been performed under lab conditions, so bear in mind that **resource limits** have been applied to every component if it.
 # Other preparations
@@ -167,3 +170,6 @@ curl -i "http://localhost:8080/buy?ticket_id=test-uuid-007"
 # output
 {"processed_by":"Shard B","status":"error","message":"Ticket already purchased with this ID"}
 ```
+
+# Next steps
+This experiment lacks **self-healing**, **gateways cluster** and **load balancer**. The next experiment merges everything tested and discussed until now including **self-healing** to every component to approach us to the final version of this task. [[Development/Experiments/SelfHealing-RedisShardingSentinel-GatewaysCluster-LoadBalancer|SelfHealing-RedisShardingSentinel-GatewaysCluster-LoadBalancer]]
