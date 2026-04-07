@@ -34,7 +34,10 @@ return 0
 > [!info] Explanation
 > You might be asking why did we add a `rollback_ticket` function. The reason is that we cannot make the *master* to rollback the `DECR` operation itself within the `buy_ticket` function when the number of acknowledgements it's not enough since we can't get the value of the `WAIT` inside it, as we've seen in the [[Development/Experiments/Redis_replication-Gateway_cluster-Load_balancer#^ac5a42|solution to lack of consistency]]. So we need to provide the gateway with something to do this rollback. What the function does is to check whether the client bought the ticket successfully or not, and based on that, we know if we have to increment the `tickets-counter` or not.
 
-3. Spin up the **gateway**.
+# Gateway
+
+1. Spin up the **gateway**.
+
 ```bash
 docker run -d --rm --name openresty-gateway --network redis-test-net \
 	-p 8080:80 -v \
