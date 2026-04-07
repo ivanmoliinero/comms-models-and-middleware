@@ -1,5 +1,6 @@
 ---
 experiment: SelfHealing-RedisShardingSentinel-GatewaysCluster-LoadBalancer
+todo: Whole experiment
 ---
 # Brief
 

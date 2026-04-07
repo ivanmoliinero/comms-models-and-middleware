@@ -1,0 +1,9 @@
+Running 10s test @ http://openresty-gateway/buy
+  5 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     5.42ms    1.58ms  49.23ms   82.81%
+    Req/Sec     3.72k   375.24     7.46k    75.85%
+  185337 requests in 10.10s, 43.13MB read
+  Non-2xx or 3xx responses: 165337
+Requests/sec:  18350.39
+Transfer/sec:      4.27MB

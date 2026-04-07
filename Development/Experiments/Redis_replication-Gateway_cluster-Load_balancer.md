@@ -21,15 +21,19 @@ sudo docker run -d \
 Note the `--appendonly yes` parameter; this tells Redis to use the [[Development/Redis#AOF (Append Only File)]] method.
  
 > [!important]
-> The previous command must be run from the path that is wanted to contain the `master-server` data.
+> The previous command must be run from the path that is wanted to contain the `redis-master` data.
 
 2. Launch the replica
 ```bash
 sudo docker run -d \
   --name redis-replica \
   --network redis-test-net \
-  redis:latest redis-server --replicaof redis-master 6379
+  -v $(pwd)/container-data:/data \
+  redis:latest redis-server --replicaof redis-master 6379 --appendonly yes --appendfsync always
 ```
+
+> [!important]
+> The previous command must be run from the path that is wanted to contain the `redis-replica` data.
 
 3. Load the `buy_ticket` function to the **master**, and set its initial state as it was done in the steps 2 and 3 of [[Development/Experiments/Redis-OpenResty#Redis|Redis-OpenResty#Redis]].
 
@@ -165,4 +169,4 @@ Same as [[Development/Experiments/Redis-Gateway_cluster-Load_balancer#Load balan
 
 # Next steps
 - Test the **sharding** idea proposed in the [[#^4104cb]]. The experiment where this is tested is [[Development/Experiments/RedisSharding-GatewayCluster-LoadBalancer|RedisSharding-GatewayCluster-LoadBalancer]].
-- #todo Test the translation of the `WAIT` operation to the gateways.
+- Test the translation of the `WAIT` operation to the gateways. This is done in [[Development/Experiments/RedisReplication-GatewayWAIT|RedisReplication-GatewayWAIT]].
