@@ -1,36 +1,23 @@
 ---
 final-version: V0.0
-environment: local
+environment: AWS
 ---
+# Description
 
+> [!warning] Important
+> Some changes have been done in respect to the most final-version-like experiment ([[Development/Experiments/RedisShardingReplicationSentinel(3+3*2+3)+Gateway|RedisShardingReplicationSentinel(3+3*2+3)+Gateway]]). Such involve reducing the number of instances used by the entire system to 9. This is because this task will be uploaded to AWS, and that is the exact number of instances we are limited to create.
+> 
+> To reduce the amount of instances we had been to:
+> - Reduce the number of shards from 3 to 2, as can be seen at [[#Components]].
+> - Move the Redis Sentinels (3 instances) to live inside the *load balancer* and *gateways*. This is indeed recommended in the following [Redis article](https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/#:~:text=The%20three%20Sentinel%20instances%20should%20be%20placed%20into%20computers%20or%20virtual%20machines%20that%20are%20believed%20to%20fail%20in%20an%20independent%20way.%20So%20for%20example%20different%20physical%20servers%20or%20Virtual%20Machines%20executed%20on%20different%20availability%20zones.).
+## Components
+
+This final version has the following instances:
+- 2 Redis shards (that are also sentinels) = (1 master + 2 replicas) per shard * 2 shards = 2 masters + 4 replicas = 6 instances
+- 1 load balancer
+- 2 gateways in the cluster
 
 # Variants
-
-Here some variants of this final version are purposed.
-## variant:: Masters and replicas are also sentinels
-
-> [!success] Pros
-> - This could reduce the number of instances used, since we now have 3 instances dedicated to Sentinel functionalities.
-> - We could have a larger number of sentinels for a reduced cost, increasing the **fault tolerance**.
-
-> [!fail] Cons
-> - The number of sentinels may not be enough eventually if the system is too small (very few instances).
-> - The number of sentinels might not be even, and given that it is a requirement, it could cause a problem.
-
-
-## variant:: The gateways are also sentinels
-> [!success] Pros
-> - This could **reduce the number of instances** used, since we now have 3 instances dedicated to Sentinel functionalities.
-> - We could have a larger number of sentinels for a reduced cost, increasing the **fault tolerance**.
-
-> [!fail] Cons
-> - The number of sentinels may not be enough eventually if the system is too small (very few instances).
-> - The number of sentinels might not be even, and given that it is a requirement, it could cause a problem.
-
-## variant:: A combination of [[#variant Masters and replicas are also sentinels]] and [[#variant The gateways are also sentinels]]
-
-> [!success] Pros
-> - Could reduce the counterpart mentioned in both variants about the eventual insufficient number of sentinels.
 
 ## variant:: Migrating to a problem-specialized database
 
