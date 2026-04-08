@@ -32,3 +32,6 @@ Here some variants of this final version are purposed.
 > [!success] Pros
 > - Could reduce the counterpart mentioned in both variants about the eventual insufficient number of sentinels.
 
+## variant:: Migrating to a problem-specialized database
+
+One of the conclusions of making this project, is that Redis is not the most suited database for this tasks. Note that we had been disabling all advantages of Redis against other databases throughout the development, such as working at the speeds of RAM and asynchronous replication. This caused the performance of Redis to reduce, maybe to the point where another more problem-specialized database would perform better.
