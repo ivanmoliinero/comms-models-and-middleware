@@ -198,6 +198,8 @@ We could now choose between the following options:
 2. **Having 2 replicas per master**: This would increase the number of instances to run the system, thus, increasing the cost of running it, but it would effectively fix this.
 #decision Based on what have been said, the option 2 is more suitable for our requirements.
 
+This decision is implemented in the experiment [[Development/Experiments/RedisShardingReplicationSentinel(3+3*2+3)+Gateway|RedisShardingReplicationSentinel(3+3*2+3)+Gateway]]
+
 ## check:: Failover interval behavior
 
 What if a client requests within the 3 seconds interval we told sentinels to wait until detecting a failover?
