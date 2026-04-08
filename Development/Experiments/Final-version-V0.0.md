@@ -257,8 +257,37 @@ exit
 exit
 # outside SSH ------------------------------------------------------------------
 curl -i "http://44.193.24.57/buy?ticket_id=aws-production-004"
+# output
+{"shard":"shard-a","ip":"10.0.1.34","status":"success","ticket":9999}
 ```
 
+As expected, the request has been redirected to the *shard A*.
+
+## check:: Both shards sell out
+
+1. Simulate running out of tickets in both shards.
+For each *redis-master-x*:
+
+```bash
+ssh -i secrets/SD-task1-key-pair.pem ubuntu@<redis-master-x-public-ip>
+
+# inside SSH -------------------------------------------------------------------
+sudo docker exec -it redis-master redis-cli
+```
+
+```redis-cli
+FLUSHALL
+SET tickets-counter 0
+exit
+```
+
+```bash
+exit
+# outside SSH ------------------------------------------------------------------
+curl -i "http://44.193.24.57/buy?ticket_id=aws-production-004"
+# output
+{"error":"Tickets sold out completely"}
+```
 # Variants
 
 ## variant:: Migrating to a problem-specialized database
