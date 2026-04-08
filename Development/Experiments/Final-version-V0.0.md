@@ -69,6 +69,9 @@ $ aws ec2 describe-instances --query "Reservations[*].Instances[*].[Tags[?Key=='
 
 ## Boot the Redis masters
 
+> [!warning] Remember
+> From here on out, customize the path to the targeted files such as the `.pem` one.
+
 Perform the following for each master:
 ```bash
 ssh -i SD-task1-key-pair.pem ubuntu@<master-public-ip>
@@ -127,7 +130,7 @@ We must focus on the `connected_slaves:2` value. Such confirms that the replicat
 
 Do this for each *redis-master*.
 ```bash
-ssh -i secrets/SD-task1-key-pair.pem ubuntu@<redis-master-public-ip>
+ssh -i SD-task1-key-pair.pem ubuntu@<redis-master-public-ip>
 
 # inside SSH -------------------------------------------------------------------
 cat << 'EOF' | sudo docker exec -i redis-master redis-cli -x FUNCTION LOAD REPLACE
@@ -163,6 +166,97 @@ sudo docker run -d --name redis-sentinel --network host redis:latest sh -c \
  echo 'sentinel down-after-milliseconds shard-a 3000' >> /tmp/sentinel.conf && \
  echo 'sentinel down-after-milliseconds shard-b 3000' >> /tmp/sentinel.conf && \
  redis-sentinel /tmp/sentinel.conf"
+```
+
+## Deploy the Gateways
+
+For each gateway:
+
+```bash
+# upload the nginx.conf file
+scp -i SD-task1-key-pair.pem nginx.conf ubuntu@<gateway-public-ip>:.
+ssh -i SD-task1-key-pair.pem ubuntu@<gateway-public-ip>
+
+# inside SSH -------------------------------------------------------------------
+sudo docker run -d --name api-gateway --network host -v $(pwd)/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro openresty/openresty:latest
+```
+
+> [!important]
+> The previous command must be run from the path that contains the [[final-versions/V0.0/gateway/nginx.conf]] file.
+
+## Deploy the Load Balancer
+
+```bash
+# upload the nginx-lb.conf
+scp -i SD-task1-key-pair.pem nginx.conf ubuntu@<load-balancer-public-ip>:.
+ssh -i SD-task1-key-pair.pem ubuntu@<load-balancer-public-ip>
+
+# inside SSH -------------------------------------------------------------------
+sudo docker run -d --name load-balancer --network host -v $(pwd)/nginx-lb.conf:/etc/nginx/nginx.conf:ro nginx:latest
+```
+
+> [!important]
+> The previous command must be run from the path that contains the [[final-versions/V0.0/load-balancer/nginx-lb.conf]] file.
+
+## check:: Client request
+
+This is the litmus test, the following commands will put to the test the full lifecycle of the requests.
+### First purchase
+
+```bash
+# client 1: first purchase
+curl -i "http://44.193.24.57/buy?ticket_id=aws-production-001"
+# output
+{"ip":"10.0.1.34","shard":"shard-a","ticket":9999,"status":"success"}
+```
+
+```bash
+# client 1: first purchase
+curl -i "http://44.193.24.57/buy?ticket_id=aws-production-004"
+# output
+{"ip":"10.0.1.92","shard":"shard-b","ticket":9999,"status":"success"}
+```
+### Retry
+
+```bash
+# client 1: retry
+curl -i "http://44.193.24.57/buy?ticket_id=aws-production-001"
+# output
+{"error":"Ticket already purchased"}
+```
+
+```bash
+# client 1: first purchase
+curl -i "http://44.193.24.57/buy?ticket_id=aws-production-004"
+# output
+{"error":"Ticket already purchased"}
+```
+
+## check:: First shard sells out
+
+With this test we enter in the edge cases zone, starting with the main shard of a client running out of tickets.
+
+1. Simulate running out of tickets for shard B
+```bash
+ssh -i secrets/SD-task1-key-pair.pem ubuntu@<redis-master-b-public-ip>
+
+# inside SSH -------------------------------------------------------------------
+sudo docker exec -it redis-master redis-cli
+```
+
+```redis-cli
+FLUSHALL
+SET tickets-counter 0
+exit
+```
+
+> [!info] Note
+> The `FLUSHALL` command in the `redis-cli` allows us to repeat a first purchase with the `ticket_id=aws-production-004`.
+
+```bash
+exit
+# outside SSH ------------------------------------------------------------------
+curl -i "http://44.193.24.57/buy?ticket_id=aws-production-004"
 ```
 
 # Variants
