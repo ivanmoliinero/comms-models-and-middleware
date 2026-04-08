@@ -27,6 +27,143 @@ This final version has the following instances:
 
 # Deploying
 
+> [!info] Note
+> - `control-plane-node-1` is the **load balancer**
+> - `control-plane-node-2` and `control-plane-node-3` are **gateways**
+
+```bash
+$ aws ec2 describe-instances --query "Reservations[*].Instances[*].[Tags[?Key=='Name'].Value|[0], PublicIpAddress]" --output table
+# output
+--------------------------------------------
+|             DescribeInstances            |
++-----------------------+------------------+
+|  control-plane-node-2 |  98.91.187.48    |
+|  redis-replica-a2     |  98.92.240.196   |
+|  redis-replica-b1     |  54.87.222.252   |
+|  redis-replica-a1     |  44.201.47.88    |
+|  control-plane-node-3 |  32.192.226.94   |
+|  redis-replica-b2     |  32.192.177.151  |
+|  redis-master-a       |  44.200.157.238  |
+|  redis-master-b       |  3.236.158.52    |
+|  control-plane-node-1 |  44.193.24.57    |
++-----------------------+------------------+
+```
+
+```bash
+$ aws ec2 describe-instances --query "Reservations[*].Instances[*].[Tags[?Key=='Name'].Value|[0], PrivateIpAddress]" --output table
+----------------------------------------
+|           DescribeInstances          |
++-----------------------+--------------+
+|  control-plane-node-2 |  10.0.1.136  |
+|  redis-replica-a2     |  10.0.1.231  |
+|  redis-replica-b1     |  10.0.1.57   |
+|  redis-replica-a1     |  10.0.1.138  |
+|  control-plane-node-3 |  10.0.1.201  |
+|  redis-replica-b2     |  10.0.1.146  |
+|  redis-master-a       |  10.0.1.34   |
+|  redis-master-b       |  10.0.1.92   |
+|  control-plane-node-1 |  10.0.1.248  |
++-----------------------+--------------+
+
+```
+
+## Boot the Redis masters
+
+Perform the following for each master:
+```bash
+ssh -i SD-task1-key-pair.pem ubuntu@<master-public-ip>
+
+# inside SSH -------------------------------------------------------------------
+# Install Docker
+sudo apt-get update && sudo apt-get install -y docker.io
+
+# Boot the Master using AWS Host Networking
+sudo docker run -d --name redis-master --network host redis:latest redis-server --appendonly yes --appendfsync always
+
+# Disconnect from the EC2 instance
+exit
+```
+
+## Boot the Redis replicas
+
+Perform the following for each replica:
+
+> [!warning]
+> Remember to change the `--replicaof` `<ip>` parameter to be the private one of the respective shard's master (e.g. use *redis-master-a* private ip (which is 10.0.1.34) for *redis-replica-a1*).
+
+```bash
+ssh -i SD-task1-key-pair.pem ubuntu@<replica-public-ip>
+
+# inside SSH -------------------------------------------------------------------
+sudo apt-get update && sudo apt-get install -y docker.io
+# Notice we use Master A's Private IP (10.0.1.34) for the replica connection
+sudo docker run -d --name redis-replica --network host redis:latest redis-server --replicaof <if A-shard-replica=10.0.1.34 | if B-shard-replica=10.0.1.92> 6379 --appendonly yes --appendfsync always
+exit
+```
+
+## check:: Security group config and replication
+
+We will be performing intermediate checks to ensure that any step of the deployment fails. This way, if anything fails, we will have a simpler system to debug.
+
+In this check we will check in one single command both **security group config** and **Redis replication** for the shard A.
+
+```bash
+ssh -i SD-task1-key-pair.pem ubuntu@10.0.1.34
+
+# inside SSH -------------------------------------------------------------------
+sudo docker exec -it redis-master redis-cli INFO replication
+# output
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=10.0.1.138,port=6379,state=online,offset=644,lag=0,io-thread=0
+slave1:ip=10.0.1.231,port=6379,state=online,offset=644,lag=0,io-thread=0
+# ... (skipped output)
+```
+
+We must focus on the `connected_slaves:2` value. Such confirms that the replication it's working, and the security group inbound rule is allowing internal traffic to port 6379.
+
+## Load LUA functions and data into the Redis masters
+
+Do this for each *redis-master*.
+```bash
+ssh -i secrets/SD-task1-key-pair.pem ubuntu@<redis-master-public-ip>
+
+# inside SSH -------------------------------------------------------------------
+cat << 'EOF' | sudo docker exec -i redis-master redis-cli -x FUNCTION LOAD REPLACE
+#!lua name=ticket_sales
+redis.register_function('buy_ticket', function(keys, args)
+  if redis.call('SISMEMBER', keys[1], args[1]) == 1 then return -1 end
+  local t = tonumber(redis.call('DECR', keys[2]))
+  if t < 0 then return -2 else redis.call('SADD', keys[1], args[1]); return t end
+end)
+redis.register_function('rollback_ticket', function(keys, args)
+  if redis.call('SREM', keys[1], args[1]) == 1 then return redis.call('INCR', keys[2]) end
+  return 0
+end)
+EOF
+sudo docker exec redis-master redis-cli SET tickets-counter 10000
+exit
+```
+
+> [!note]
+> We will be loading 10.000 tickets to each Redis shard.
+
+## Set up the Sentinels (Load Balancer and Gateways)
+
+For each `control-plane-node-x`:
+
+```bash
+sudo apt-get update && sudo apt-get install -y docker.io
+
+sudo docker run -d --name redis-sentinel --network host redis:latest sh -c \
+"echo 'port 26379' > /tmp/sentinel.conf && \
+ echo 'sentinel monitor shard-a 10.0.1.34 6379 2' >> /tmp/sentinel.conf && \
+ echo 'sentinel monitor shard-b 10.0.1.92 6379 2' >> /tmp/sentinel.conf && \
+ echo 'sentinel down-after-milliseconds shard-a 3000' >> /tmp/sentinel.conf && \
+ echo 'sentinel down-after-milliseconds shard-b 3000' >> /tmp/sentinel.conf && \
+ redis-sentinel /tmp/sentinel.conf"
+```
 
 # Variants
 
