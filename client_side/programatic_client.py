@@ -28,8 +28,7 @@ args, unknown = parser.parse_known_args()
 # Obtain RabbitMQ host from the parsed arguments
 rabbitmq_host = args.rabbitmq_host
 
-QUEUE_NAME='ticket.requests'
-EXCHANGE_NAME='ticket.acquisition'
+EXCHANGE_NAME='ticket.requests'
 
 start_time: float
 end_time: float
@@ -39,7 +38,7 @@ channel: pika.adapters.blocking_connection.BlockingChannel
 def client_publisher(lines_list):
     """
     Function executed in the main thread.
-    It opens the connection, declares the queue, and publishes all lines.
+    It opens the connection, declares the queues, and publishes all lines.
     """
     # 1. Open the connection to RabbitMQ
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
@@ -52,7 +51,7 @@ def client_publisher(lines_list):
 
     # 2. Declare the Consistent Hash Exchange
     channel.exchange_declare(
-        exchange='ticket.requests',
+        exchange=EXCHANGE_NAME,
         exchange_type='x-consistent-hash',
         durable=True
     )
@@ -69,28 +68,27 @@ def client_publisher(lines_list):
         )
         channel.queue_bind(
             queue=shard_name,
-            exchange='ticket.requests',
+            exchange=EXCHANGE_NAME,
             routing_key='1'
         )
 
     global start_time
     start_time = time.time()
 
-    # 3. Burst publish the messages
+    # 4. Burst publish the messages
     for index, line in enumerate(lines_list):
         if line.startswith("BUY "):
             # The x-consistent-hash exchange uses this dynamic string to distribute the load
             dynamic_routing_key = str(index)
 
             channel.basic_publish(
-                exchange='ticket.requests',
+                exchange=EXCHANGE_NAME,
                 routing_key=dynamic_routing_key,
                 body=line.encode('utf-8'),
                 properties=pika.BasicProperties(
                     delivery_mode=pika.DeliveryMode.Persistent
                 )
             )
-
 
 
 if __name__ == '__main__':
@@ -104,15 +102,21 @@ if __name__ == '__main__':
     client_publisher(lines)
 
     print("Queue flooding completed.")
-    print("Checking queue till all tickets are processed.")
+    print("Checking shards till all tickets are processed.")
 
     while True:
-        # The passive=True flag checks the queue state without re-declaring it
-        queue_state = channel.queue_declare(queue=QUEUE_NAME, passive=True)
-        current_message_count = queue_state.method.message_count
+        total_pending_messages = 0
 
-        if current_message_count == 0:
-            # The queue has been fully drained by the workers
+        # Iterate over the exactly known 3 shard queues
+        for i in range(1, 4):
+            shard_name = f'ticket.shard.{i}'
+
+            # The passive=True flag checks the queue state without modifying it
+            queue_state = channel.queue_declare(queue=shard_name, passive=True)
+            total_pending_messages += queue_state.method.message_count
+
+        if total_pending_messages == 0:
+            # All shard queues have been fully drained by the workers
             break
 
         # Wait before checking again to avoid spamming the RabbitMQ server
