@@ -16,9 +16,9 @@ Same as [[Development/Experiments/Redis-OpenResty|Redis-OpenResty]].
 # Redis
 1. Set up Redis just as we did in [[Development/Experiments/Redis_replication-Gateway_cluster-Load_balancer|Redis_replication-Gateway_cluster-Load_balancer]].
 
-2. Add the following function to the `redis-master`.
+2. Add the functions `buy_ticket` and `rollbac_ticket` to the `redis-master`.
 ```
-FUNCTION LOAD REPLACE "#!lua name=ticket_sales\nredis.register_function('rollback_ticket', function(keys, args)\n  if redis.call('SREM', keys[1], args[1]) == 1 then\n    return redis.call('INCR', keys[2])\n  end\n  return 0\nend)"
+FUNCTION LOAD REPLACE "#!lua name=ticket_sales\nredis.register_function('buy_ticket', function(keys, args)\n  if redis.call('SISMEMBER', keys[1], args[1]) == 1 then\n    return -1\n  else\n    local ticket_number = tonumber(redis.call('DECR', keys[2]))\n    if ticket_number < 0 then\n      return -2\n    else\n      redis.call('SADD', keys[1], args[1])\n      return ticket_number\n    end\n  end\nend)\n\nredis.register_function('rollback_ticket', function(keys, args)\n  if redis.call('SREM', keys[1], args[1]) == 1 then\n    return redis.call('INCR', keys[2])\n  end\n  return 0\nend)"
 ```
 
 In a human readable form:
@@ -46,6 +46,14 @@ docker run -d --rm --name openresty-gateway --network redis-test-net \
 
 > [!important]
 > The previous command must be run from the path that contains the [[software-testing/redisReplication-gatewayWAIT/gateway/nginx.conf]] file.
+
+> [!important]
+> One think must be said about the new `nginx.conf` file. A problem was encountered during the development of this experiment. The **socket read timeout** (configured with `red: set_timeouts`) was the same amount of the `red:wait` operation. This caused the socket to be closed before the rollback operation could be sent. In consequence, the rollback was never being sent.
+> To fix this, the **read timeout** has been increased to 2000 ms. This can be seen at the following line of the file:
+> ```embed-bash
+> PATH: "vault://software-testing/redisShardingSentinel-gateways/gateway/nginx.conf"
+> LINES: "73"
+> ```
 
 # Benchmarks
 ## Full HTTP lifecycle
