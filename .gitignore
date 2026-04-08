@@ -1,8 +1,18 @@
 # folders
+## obsidian
 .obsidian/
 software-testing/redis_replication-gateway_cluster-load_balancer/redis-cluster/*/container-data/
+## containers
 software-testing/redisSharding-gatewayCluster-loadBalancer/redis-server/*/appendonlydir/
 **/container-data/
+## aws
+**/secrets/
+## terraform
+**/.terraform/
 
 # file extensions
+## redis
 *.rdb
+## terraform
+*.tfstate
+*.hcl
