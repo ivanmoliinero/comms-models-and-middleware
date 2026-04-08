@@ -18,15 +18,14 @@ REDIS_PASS="admin123"
 
 # 1. Run the Redis Master container
 # We enforce the strict replication rules to prevent split-brain data loss
-# NOTE: Masterauth must be included to ensure reconnection if the node is destroyed.
 docker run -d \
   --name redis-server \
   --net host \
   --restart always \
   redis:latest \
   redis-server \
-  --requirepass $REDIS_PASS \
-  --appendonly yes \
+  --save "" \
+  --requirepass $REDIS_PASS
 
 # Wait loop: Blocks execution until the local Redis container is fully running
 echo "Waiting for local Redis Master container to initialize..."

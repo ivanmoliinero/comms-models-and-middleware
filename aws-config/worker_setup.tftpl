@@ -4,7 +4,7 @@
 # RABBITMQ_HOST expects a single IP or an NLB DNS.
 # REDIS_SENTINELS expects a comma-separated list of IPs (e.g., "10.0.0.1,10.0.0.2,10.0.0.3").
 RABBITMQ_HOST="${rabbitmq_host}"
-REDIS_SENTINELS="${redis_host}"
+REDIS_HOST="${redis_host}"
 
 # Update the system packages
 yum update -y
@@ -41,7 +41,7 @@ After=network.target
 Type=simple
 User=ec2-user
 WorkingDirectory=$TARGET_DIR
-ExecStart=/home/ec2-user/venv/bin/python3 -u /home/ec2-user/comms-models-and-middleware/server_side/worker.py --rabbitmq-host $RABBITMQ_HOST --redis-sentinels $REDIS_SENTINELS
+ExecStart=/home/ec2-user/venv/bin/python3 -u /home/ec2-user/comms-models-and-middleware/server_side/worker.py --rabbitmq-host $RABBITMQ_HOST --redis-host $REDIS_HOST
 # Automatically restart the service if it crashes or exits
 Restart=always
 RestartSec=5
