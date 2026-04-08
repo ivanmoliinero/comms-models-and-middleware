@@ -3,6 +3,10 @@ final-version: V0.0
 environment: AWS
 ---
 # Description
+
+> [!important]
+> This version is only prepared to handle **unnumbered tickets**.
+
 ## Implications of migrating from Docker containers in localhost to AWS
 
 ### Instances number limit
@@ -238,7 +242,7 @@ With this test we enter in the edge cases zone, starting with the main shard of 
 
 1. Simulate running out of tickets for shard B
 ```bash
-ssh -i secrets/SD-task1-key-pair.pem ubuntu@<redis-master-b-public-ip>
+ssh -i SD-task1-key-pair.pem ubuntu@<redis-master-b-public-ip>
 
 # inside SSH -------------------------------------------------------------------
 sudo docker exec -it redis-master redis-cli
@@ -269,7 +273,7 @@ As expected, the request has been redirected to the *shard A*.
 For each *redis-master-x*:
 
 ```bash
-ssh -i secrets/SD-task1-key-pair.pem ubuntu@<redis-master-x-public-ip>
+ssh -i SD-task1-key-pair.pem ubuntu@<redis-master-x-public-ip>
 
 # inside SSH -------------------------------------------------------------------
 sudo docker exec -it redis-master redis-cli
@@ -288,6 +292,56 @@ curl -i "http://44.193.24.57/buy?ticket_id=aws-production-004"
 # output
 {"error":"Tickets sold out completely"}
 ```
+
+# Benchmarks
+
+## benchmark:: Unnumbered tickets
+
+The provided benchmarking file ([[benchmarks/benchmark_unnumbered_20000.txt]]) specifies making 20.000 requests, without any retry. This can be achieved with the following LUA script and the `wrk` tool used previously throughout this work.
+
+```embed-bash
+PATH: "vault://final-versions/V0.0/benchmarks/sequential_benchmark.lua"
+```
+
+```bash
+sudo docker run --rm   --network host   -v $(pwd)/sequential_benchmark.lua:/benchmark.lua   williamyeh/wrk   -t1 -c100 -d23s -s /benchmark.lua http://44.193.24.57/buy
+
+# output
+Running 23s test @ http://44.193.24.57/buy
+  1 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   111.67ms   16.36ms 435.20ms   97.59%
+    Req/Sec     0.90k   142.01     1.01k    85.59%
+  20565 requests in 23.07s, 4.75MB read
+  Non-2xx or 3xx responses: 565
+Requests/sec:    891.44
+Transfer/sec:    210.78KB
+```
+
+> [!note]
+> We've set the duration to 23 seconds since this was the theoretical time where the 20.000 should have been already performed (based on theoretical speeds of another non-documented benchmark).
+
+This could seem a very low RPS number, so let's see where the bottleneck sits performing a localhost benchmark to a *redis-master* (in this case *redis-master-a*).
+
+```bash
+ssh -i SD-task1-key-pair.pem ubuntu@<redis-master-a>
+
+# inside SSH -------------------------------------------------------------------
+sudo docker run --rm     --network host  redis:latest    redis-benchmark -h 127.0.0.1 -c 5 -n 40000 -q --threads 5 -r 20000 --csv        fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__
+"test","rps","avg_latency_ms","min_latency_ms","p50_latency_ms","p95_latency_ms","p99_latency_ms","max_latency_ms"
+"fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__","1078.66","4.606","0.048","5.775","6.167","6.423","11.095"
+```
+
+![[final-versions/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
+```csvtable
+columns:
+- test
+- rps
+- p99_latency_ms	
+source: [[final-versions/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
+```
+Those are awful RPS and latency values considering this test was run in the *loopback* network. This shows the real bottleneck of the system, thus, it could be proved by increasing the number of shards, or the speed of the storage media.
+
 # Variants
 
 ## variant:: Migrating to a problem-specialized database
