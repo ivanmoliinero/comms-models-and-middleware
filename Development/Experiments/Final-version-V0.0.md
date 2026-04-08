@@ -23,6 +23,8 @@ This final version has the following instances:
 - 1 load balancer
 - 2 gateways in the cluster
 
+#todo Indicate the machine chosen for each instance (i.e. t3.micro, t2.micro)
+
 # Deploying
 
 

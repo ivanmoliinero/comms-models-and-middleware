@@ -20,6 +20,7 @@ resource "aws_subnet" "main_subnet" {
   vpc_id                  = aws_vpc.redis_vpc.id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true 
+  availability_zone       = "us-east-1a"	# otherwise t3.micro cannot be find
   tags = { Name = "redis-cluster-subnet" }
 }
 
