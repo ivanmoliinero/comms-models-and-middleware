@@ -176,8 +176,7 @@ def start_worker():
 
             channel.queue_declare(
                 queue=QUEUE_NAME,
-                durable=True,
-                arguments={'x-queue-type': 'quorum'}
+                durable=True
             )
 
             channel.basic_qos(prefetch_count=1)

@@ -179,32 +179,6 @@ resource "aws_instance" "rabbitmq_primary" {
     Role = "MessageBroker"
   }
 }
-
-# 2 EC2 Instances for RabbitMQ Cluster (Quorum Queue)
-# (3 total instances)
-resource "aws_instance" "rabbitmq_nodes" {
-  count                  = 2
-  ami                    = var.ec2_ami_id
-  instance_type          = var.ec2_rabbit_mq_node
-  subnet_id              = aws_subnet.custom_subnet.id
-  vpc_security_group_ids = [aws_security_group.custom_sg.id]
-
-  # Strictly wait for the primary node to be provisioned first
-  depends_on = [aws_instance.rabbitmq_primary]
-
-  # Prefab key of labs
-  key_name               = "vockey"
-
-  # They need private IP of main node in order to be setup.
-  user_data = templatefile("rabbitmq_secondary_setup.tftpl", {
-    primary_ip = aws_instance.rabbitmq_primary[0].private_ip
-  })
-
-  tags = {
-    Name = "task1-RabbitMQ-Secondary-Node-${count.index + 1}"
-    Role = "MessageBroker"
-  }
-}
 ##################################################################################################
 
 ######################################## REDIS CLUSTER ########################################
@@ -302,16 +276,6 @@ resource "aws_lb_target_group_attachment" "rabbitmq_primary_attachment" {
 
   depends_on       = [aws_instance.rabbitmq_primary]
 }
-
-# Attach Secondary Node(s)
-resource "aws_lb_target_group_attachment" "rabbitmq_secondary_attachment" {
-  count            = length(aws_instance.rabbitmq_nodes)
-  target_group_arn = aws_lb_target_group.rabbitmq_tg.arn
-  target_id        = aws_instance.rabbitmq_nodes[count.index].id
-  port             = 5672
-
-  depends_on       = [aws_instance.rabbitmq_nodes]
-}
 ########################################################################################
 
 # EC2 Instances for Workers
@@ -326,7 +290,7 @@ resource "aws_instance" "worker_nodes" {
   key_name               = "vockey"
 
   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
-  depends_on = [aws_lb_listener.rabbitmq_listener, aws_instance.redis_primary, aws_instance.rabbitmq_nodes, aws_instance.redis_secondary]
+  depends_on = [aws_lb_listener.rabbitmq_listener, aws_instance.redis_primary, aws_instance.redis_secondary]
 
   user_data = templatefile("worker_setup.tftpl", {
     rabbitmq_host = aws_lb.rabbitmq_nlb.dns_name,

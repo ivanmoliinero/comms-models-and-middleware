@@ -54,8 +54,7 @@ def client_publisher(lines_list):
     channel.exchange_declare(exchange=EXCHANGE_NAME,
                              exchange_type='direct')
     channel.queue_declare(queue=QUEUE_NAME,
-                          durable=True,
-                          arguments={'x-queue-type': 'quorum'})
+                          durable=True)
     channel.queue_bind(queue=QUEUE_NAME,
                        exchange=EXCHANGE_NAME,
                        routing_key=QUEUE_NAME)
