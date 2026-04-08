@@ -4,7 +4,7 @@
 # RABBITMQ_HOST expects a single IP or an NLB DNS.
 # REDIS_SENTINELS expects a comma-separated list of IPs (e.g., "10.0.0.1,10.0.0.2,10.0.0.3").
 RABBITMQ_HOST="${rabbitmq_host}"
-REDIS_SENTINELS="${redis_sentinels}"
+REDIS_SENTINELS="${redis_host}"
 
 # Update the system packages
 yum update -y
@@ -20,7 +20,7 @@ cd /home/ec2-user
 git clone $REPO_URL
 
 cd $TARGET_DIR
-git checkout testing/performance-uplift # TODO: change for final version
+git checkout testing/no-redundancy # TODO: change for final version
 
 # Ensure ec2-user owns the cloned repository
 chown -R ec2-user:ec2-user $TARGET_DIR

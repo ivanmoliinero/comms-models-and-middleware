@@ -201,24 +201,6 @@ resource "aws_instance" "redis_primary" {
     Role = "StateStore"
   }
 }
-
-resource "aws_instance" "redis_secondary" {
-  count                  = 2
-  ami                    = var.ec2_ami_id
-  instance_type          = var.ec2_instance_type
-  subnet_id              = aws_subnet.custom_subnet.id
-  vpc_security_group_ids = [aws_security_group.custom_sg.id]
-  key_name               = "vockey"
-
-  user_data = templatefile("redis_secondary_setup.tftpl", {
-    primary_ip = aws_instance.redis_primary[0].private_ip
-  })
-
-  tags = {
-    Name = "task1-Redis-Secondary-${count.index + 1}"
-    Role = "RedisCluster"
-  }
-}
 ###############################################################################################
 
 
@@ -290,11 +272,11 @@ resource "aws_instance" "worker_nodes" {
   key_name               = "vockey"
 
   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
-  depends_on = [aws_lb_listener.rabbitmq_listener, aws_instance.redis_primary, aws_instance.redis_secondary]
+  depends_on = [aws_lb_listener.rabbitmq_listener, aws_instance.redis_primary]
 
   user_data = templatefile("worker_setup.tftpl", {
     rabbitmq_host = aws_lb.rabbitmq_nlb.dns_name,
-    redis_sentinels = join(",", concat([aws_instance.redis_primary[0].private_ip], aws_instance.redis_secondary[*].private_ip))
+    redis_host = aws_instance.redis_primary[0].private_ip
   })
 
   tags = {

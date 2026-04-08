@@ -6,7 +6,6 @@ consistency backend.
 
 import pika
 import redis
-from redis.sentinel import Sentinel
 import argparse
 import time
 
@@ -53,7 +52,7 @@ START_TIME_KEY='start_time'
 END_TIME_KEY='end_time'
 
 # Initialize the argument parser
-parser = argparse.ArgumentParser(description="RabbitMQ and Redis Sentinel connection script.")
+parser = argparse.ArgumentParser(description="RabbitMQ and Redis connection script.")
 
 parser.add_argument(
     '--rabbitmq-host',
@@ -62,20 +61,19 @@ parser.add_argument(
     help='Host address for RabbitMQ'
 )
 
-# Modified to accept a comma-separated list of Sentinel IPs
+# Parse the single Redis host IP
 parser.add_argument(
-    '--redis-sentinels',
+    '--redis-host',
     type=str,
     default='localhost',
-    help='Comma-separated host addresses for Redis Sentinels'
+    help='Host REDIS address'
 )
 
 # Parse the command-line arguments
 args, unknown = parser.parse_known_args()
 
 rabbitmq_host = args.rabbitmq_host
-# Parse the string into a list of tuples: [('IP1', 26379), ('IP2', 26379), ...]
-sentinel_hosts = [(ip.strip(), 26379) for ip in args.redis_sentinels.split(',')]
+redis_host = args.redis_host
 
 QUEUE_NAME='ticket.requests'
 EXCHANGE_NAME='ticket.acquisition'
@@ -88,15 +86,13 @@ auto_incr: redis.commands.core.Script
 def process_message(ch, method, properties, body):
     """
     Callback function to process incoming messages.
-    Includes fail-safe logic for Redis partitions.
     """
     message = body.decode('utf-8')
     print(f"[*] Received: {message}")
 
     global auto_incr
     try:
-        # The sentinel-managed client automatically discovers the new master
-        # if a failover occurred before this call.
+        # Execute the Lua script atomically
         result = auto_incr(keys=[COUNTER_VAR, START_TIME_KEY, END_TIME_KEY],
                            args=[MAX_TICKETS])
 
@@ -104,7 +100,6 @@ def process_message(ch, method, properties, body):
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     except redis.exceptions.RedisError as e:
-        # This catches ConnectionError, ReadOnlyError, and ResponseError (NOQUORUM).
         print(f"[!] Redis execution failed: {e}")
         print("[*] NACKing message to prevent data loss. Requeueing...")
 
@@ -112,36 +107,32 @@ def process_message(ch, method, properties, body):
         # It will be safely redelivered.
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
-        # Brief pause to prevent a tight loop if the master is temporarily down
+        # Brief pause to prevent a tight loop if the database is temporarily down
         time.sleep(1)
 
 
-def connect_to_redis_sentinel(sentinel_list, password, delay=5):
+def connect_to_redis(host, password, port=6379, delay=5):
     """
-    Attempts to connect to the Redis Sentinel cluster and fetch the master.
+    Attempts to connect to a single Redis node.
     """
     while True:
         try:
-            print(f"[*] Attempting to connect to Redis Sentinels at {sentinel_list}...")
+            print(f"[*] Attempting to connect to Redis at {host}:{port}...")
 
-            # Initialize the Sentinel object
-            # Provide the password to authenticate with the sentinels themselves
-            sentinel_manager = Sentinel(sentinel_list)
-
-            # master_for returns a dynamic client connected to the current master
-            r_client = sentinel_manager.master_for(
-                'mymaster',
+            r_client = redis.Redis(
+                host=host,
+                port=port,
                 password=password,
                 decode_responses=True
             )
 
-            # Ping verifies the connection to the actual Master is established
+            # Ping verifies the connection to the instance is established
             if r_client.ping():
-                print("[*] Successfully connected to Redis Master via Sentinel.")
+                print("[*] Successfully connected to Redis.")
                 return r_client
 
-        except (redis.exceptions.ConnectionError, redis.sentinel.MasterNotFoundError) as e:
-            print(f"[!] Redis Sentinel connection failed: {e}. Retrying in {delay} seconds...")
+        except redis.exceptions.ConnectionError as e:
+            print(f"[!] Redis connection failed: {e}. Retrying in {delay} seconds...")
             time.sleep(delay)
 
 
@@ -153,15 +144,14 @@ def start_worker():
     global client
     global auto_incr
 
-    # 1. Establish Redis connection using Sentinel
-    client = connect_to_redis_sentinel(sentinel_hosts, REDIS_PASS)
+    # 1. Establish single-node Redis connection
+    client = connect_to_redis(redis_host, REDIS_PASS)
     auto_incr = client.register_script(lua_script)
 
     # 2. Main loop for RabbitMQ connection and consumption
     while True:
         try:
-            print(f"[*] Attempting to connect to "
-                  f"RabbitMQ at {rabbitmq_host}...")
+            print(f"[*] Attempting to connect to RabbitMQ at {rabbitmq_host}...")
             credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
 
             parameters = pika.ConnectionParameters(
@@ -186,8 +176,7 @@ def start_worker():
                 auto_ack=False
             )
 
-            print(" [*] Worker is ready and waiting for messages. "
-                  "To exit press CTRL+C")
+            print(" [*] Worker is ready and waiting for messages. To exit press CTRL+C")
 
             channel.start_consuming()
 
