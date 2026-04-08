@@ -53,8 +53,7 @@ def client_publisher(lines_list):
     # 2. Declare the quorum queue (idempotent operation)
     channel.exchange_declare(exchange=EXCHANGE_NAME,
                              exchange_type='direct')
-    channel.queue_declare(queue=QUEUE_NAME,
-                          durable=True)
+    channel.queue_declare(queue=QUEUE_NAME)
     channel.queue_bind(queue=QUEUE_NAME,
                        exchange=EXCHANGE_NAME,
                        routing_key=QUEUE_NAME)

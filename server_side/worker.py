@@ -175,8 +175,7 @@ def start_worker():
             channel = connection.channel()
 
             channel.queue_declare(
-                queue=QUEUE_NAME,
-                durable=True
+                queue=QUEUE_NAME
             )
 
             channel.basic_qos(prefetch_count=1)
