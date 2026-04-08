@@ -1,6 +1,7 @@
 ---
 experiment: RedisShardingReplicationSentinel(3+3*2+3)-Gateway
 improves: "[[Development/Experiments/RedisShardingSentinel-Gateway|RedisShardingSentinel-Gateway]]"
+environment: local
 ---
 
 > [!warning]

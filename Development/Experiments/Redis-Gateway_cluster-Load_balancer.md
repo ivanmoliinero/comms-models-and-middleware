@@ -1,5 +1,6 @@
 ---
 experiment: Redis+GatewayCluster+LoadBalancer
+environment: local
 ---
 
 > [!warning]

@@ -1,5 +1,6 @@
 ---
 experiment: RedisReplication-GatewayWAIT
+environment: local
 ---
 # Brief
 In this experiment we will be testing the idea of moving the `WAIT` operation of the Redis master to the gateways.

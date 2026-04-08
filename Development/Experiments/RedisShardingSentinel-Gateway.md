@@ -1,5 +1,6 @@
 ---
 experiment: RedisShardingSentinel-Gateway
+environment: local
 ---
 # Brief
 

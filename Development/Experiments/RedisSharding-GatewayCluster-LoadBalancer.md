@@ -1,5 +1,6 @@
 ---
 experiment: RedisSharding+GatewayCluster+LoadBalancer
+environment: local
 ---
 # Brief
 This experiment tries the solutions proposed in [[Development/Experiments/Redis_replication-Gateway_cluster-Load_balancer|Redis_replication-Gateway_cluster-Load_balancer]]. We simplify the system to focus on the database **sharding**, so the **gateways cluster** and **load balancer** are removed for this.
