@@ -172,4 +172,4 @@ curl -i "http://localhost:8080/buy?ticket_id=test-uuid-007"
 ```
 
 # Next steps
-This experiment lacks **self-healing**, **gateways cluster** and **load balancer**. The next experiment merges everything tested and discussed until now including **self-healing** to every component to approach us to the final version of this task. [[Development/Experiments/SelfHealing-RedisShardingSentinel-GatewaysCluster-LoadBalancer|SelfHealing-RedisShardingSentinel-GatewaysCluster-LoadBalancer]]
+This experiment lacks **self-healing**, **gateways cluster** and **load balancer**. The next experiment merges everything tested and discussed until now including **self-healing** to every component to approach us to the final version of this task. [[Development/Experiments/RedisShardingSentinel-Gateway|RedisShardingSentinel-Gateway]]
