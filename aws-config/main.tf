@@ -229,11 +229,14 @@ resource "aws_instance" "worker_nodes" {
   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
   depends_on = [aws_instance.rabbitmq_primary, aws_instance.redis_primary, aws_instance.rabbitmq_nodes]
 
-  # The RabbitMQ accessed server will be the first one available for all.
+  # Dynamically calculate the modulo based on the total RabbitMQ cluster size
+  # (1 primary node + the total count of secondary nodes).
   user_data = templatefile("worker_setup.tftpl", {
-    rabbitmq_host = count.index % 3 == 0 ? aws_instance.rabbitmq_primary[0].private_ip : aws_instance.rabbitmq_nodes[(count.index % 3) - 1].private_ip,
-    redis_host = aws_instance.redis_primary[0].private_ip,
-    shard = count.index % 3
+    rabbitmq_host = count.index % (length(aws_instance.rabbitmq_nodes) + 1) == 0 ? aws_instance.rabbitmq_primary[0].private_ip : aws_instance.rabbitmq_nodes[(count.index % (length(aws_instance.rabbitmq_nodes) + 1)) - 1].private_ip,
+    redis_host    = aws_instance.redis_primary[0].private_ip,
+
+    # Add +1 to match the 1-based indexing used in the Python worker script (ticket.shard.1, etc.)
+    shard = (count.index % (length(aws_instance.rabbitmq_nodes) + 1)) + 1
   })
 
   tags = {
