@@ -265,7 +265,5 @@ The system clearly exhausted, so let's execute another benchmark with `vus: 1000
 PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-full-result-vis-1000.txt"
 ```
 
-Finally, a good throughput of **2564 RPS**.
-
-
-
+Finally, a good throughput of **2564 RPS**. But let's thoroughly analyse all the system with real time data to find the bottleneck.
+#todo
