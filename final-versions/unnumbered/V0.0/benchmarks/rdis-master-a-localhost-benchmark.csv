@@ -1,2 +1,0 @@
-"test","rps","avg_latency_ms","min_latency_ms","p50_latency_ms","p95_latency_ms","p99_latency_ms","max_latency_ms"
-"fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__","961.72","5.155","2.416","5.799","6.135","6.399","12.783"

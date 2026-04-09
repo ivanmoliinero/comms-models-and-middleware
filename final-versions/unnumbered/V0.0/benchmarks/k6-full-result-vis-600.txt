@@ -1,0 +1,68 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /k6_benchmark.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 600 max VUs, 10m30s max duration (incl. graceful stop):
+              * exact_requests: 20000 iterations shared among 600 VUs (maxDuration: 10m0s, gracefulStop: 30s)
+
+
+running (00m01.0s), 600/600 VUs, 1462 complete and 0 interrupted iterations
+exact_requests   [   7% ] 600 VUs  00m01.0s/10m0s  01462/20000 shared iters
+
+running (00m02.0s), 600/600 VUs, 5314 complete and 0 interrupted iterations
+exact_requests   [  27% ] 600 VUs  00m02.0s/10m0s  05314/20000 shared iters
+
+running (00m03.0s), 600/600 VUs, 9762 complete and 0 interrupted iterations
+exact_requests   [  49% ] 600 VUs  00m03.0s/10m0s  09762/20000 shared iters
+
+running (00m04.0s), 600/600 VUs, 14026 complete and 0 interrupted iterations
+exact_requests   [  70% ] 600 VUs  00m04.0s/10m0s  14026/20000 shared iters
+
+running (00m05.0s), 600/600 VUs, 19002 complete and 0 interrupted iterations
+exact_requests   [  95% ] 600 VUs  00m05.0s/10m0s  19002/20000 shared iters
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 80000  14786.641465/s
+    checks_succeeded...: 25.00% 20000 out of 80000
+    checks_failed......: 75.00% 60000 out of 80000
+
+    ✗ Success (200 OK)
+      ↳  98% — ✓ 19775 / ✗ 225
+    ✗ Duplicate ID (409 Conflict)
+      ↳  0% — ✓ 0 / ✗ 20000
+    ✗ Sold Out (410 Gone)
+      ↳  0% — ✓ 0 / ✗ 20000
+    ✗ Gateway/DB Error (500+)
+      ↳  1% — ✓ 225 / ✗ 19775
+
+    HTTP
+    http_req_duration..............: avg=143.11ms min=97.68ms med=121.72ms max=3.14s p(90)=195.42ms p(95)=224.63ms
+      { expected_response:true }...: avg=143.05ms min=97.68ms med=121.62ms max=3.14s p(90)=195.71ms p(95)=226.4ms 
+    http_req_failed................: 1.12%  225 out of 20000
+    http_reqs......................: 20000  3696.660366/s
+
+    EXECUTION
+    iteration_duration.............: avg=152.92ms min=97.78ms med=121.93ms max=3.38s p(90)=199.86ms p(95)=242.74ms
+    iterations.....................: 20000  3696.660366/s
+    vus............................: 600    min=600          max=600
+    vus_max........................: 600    min=600          max=600
+
+    NETWORK
+    data_received..................: 4.9 MB 902 kB/s
+    data_sent......................: 2.0 MB 362 kB/s
+
+
+
+
+running (00m05.4s), 000/600 VUs, 20000 complete and 0 interrupted iterations
+exact_requests ✓ [ 100% ] 600 VUs  00m05.4s/10m0s  20000/20000 shared iters

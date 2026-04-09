@@ -212,26 +212,35 @@ exact_requests ✓ [ 100% ] 100 VUs  00m27.8s/10m0s  25997/25997 shared iters
 
 ```
 
-## benchmark:: Redis loopback
+## benchmark:: Redis
 A local `redis-benchmark` has been executed to see Redis real speed isolated from the system:
 
 > [!warning] Important
-> The following benchmark has been ran from another machine so it doesn't use the benchmarked resources themselves.
+> The following benchmark has been ran from another machine (*redis-master-b*) so it doesn't use the benchmarked resources themselves.
 
 ```bash
+# initialize the database state
+ssh -i SD-task1-key-pair.pem ubuntu@<redis-master-a>
+
+# inside SSH -------------------------------------------------------------------
 sudo docker exec redis-master redis-cli FLUSHALL
 sudo docker exec redis-master redis-cli -x EVAL "for i=1, 10000, 1 do redis.call('SET', 'seat-'..i, '1') end" 0
+```
 
+```bash
+ssh -i SD-task1-key-pair.pem ubuntu@<redis-master-b>
+
+# inside SSH -------------------------------------------------------------------
 sudo docker run --rm --network host redis:latest redis-benchmark -h 10.0.1.34 -p 6379 -c 100 -n 10000 -q --threads 8 --csv EVAL "local id = redis.call('INCR', KEYS[2]); local seat = 'seat-' .. id; local user = 'user-' .. id; if redis.call('SISMEMBER', KEYS[1], user) == 1 then return -1 end; if redis.call('DEL', seat) == 1 then redis.call('SADD', KEYS[1], user); return 1 end; return -2;" 2 purchased_tracking_ids bench_counter
 ```
 
-![[final-versions/numbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
+![[final-versions/numbered/V0.0/benchmarks/redis-master-a-benchmark.csv]]
 ```csvtable
 columns:
 - test
 - rps
 - p99_latency_ms	
-source: [[final-versions/numbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
+source: [[final-versions/numbered/V0.0/benchmarks/redis-master-a-benchmark.csv]]
 ```
 In conclusion, Redis throughput is not the bottleneck in this case.
 
@@ -245,7 +254,7 @@ The whole output does not fit into an explanatory document, so just the most imp
 The first 165 lines show how the system quickly responds to the **90 %** of the requests. From here on out, the system gets stucked.
 
 
-[benchmark:: Throughput] [vus:: 3500]
+[benchmark:: Throughput] [vus:: 3500] [workers: 2 per gateway]
 ```embed-bash
 PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-result-vus-3500.txt"
 LINES: "5-9, 158-165"
@@ -260,7 +269,7 @@ LINES: "168-203"
 
 The system clearly exhausted, so let's execute another benchmark with `vus: 1000`.
 
-[benchmark:: Throughput] [vus:: 1000]
+[benchmark:: Throughput] [vus:: 1000] [workers: 2 per gateway]
 ```embed-bash
 PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-full-result-vis-1000.txt"
 ```

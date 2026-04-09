@@ -1,0 +1,248 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /k6_benchmark.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 1000 max VUs, 10m30s max duration (incl. graceful stop):
+              * exact_requests: 20000 iterations shared among 1000 VUs (maxDuration: 10m0s, gracefulStop: 30s)
+
+
+running (00m00.9s), 1000/1000 VUs, 1504 complete and 0 interrupted iterations
+exact_requests   [   8% ] 1000 VUs  00m00.9s/10m0s  01504/20000 shared iters
+
+running (00m01.9s), 1000/1000 VUs, 7251 complete and 0 interrupted iterations
+exact_requests   [  36% ] 1000 VUs  00m01.9s/10m0s  07251/20000 shared iters
+
+running (00m02.9s), 1000/1000 VUs, 13627 complete and 0 interrupted iterations
+exact_requests   [  68% ] 1000 VUs  00m02.9s/10m0s  13627/20000 shared iters
+
+running (00m03.9s), 0958/1000 VUs, 19042 complete and 0 interrupted iterations
+exact_requests   [  95% ] 1000 VUs  00m03.9s/10m0s  19042/20000 shared iters
+
+running (00m04.9s), 0048/1000 VUs, 19952 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m04.9s/10m0s  19952/20000 shared iters
+
+running (00m05.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m05.9s/10m0s  19984/20000 shared iters
+
+running (00m06.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m06.9s/10m0s  19984/20000 shared iters
+
+running (00m07.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m07.9s/10m0s  19984/20000 shared iters
+
+running (00m08.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m08.9s/10m0s  19984/20000 shared iters
+
+running (00m09.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m09.9s/10m0s  19984/20000 shared iters
+
+running (00m10.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m10.9s/10m0s  19984/20000 shared iters
+
+running (00m11.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m11.9s/10m0s  19984/20000 shared iters
+
+running (00m12.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m12.9s/10m0s  19984/20000 shared iters
+
+running (00m13.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m13.9s/10m0s  19984/20000 shared iters
+
+running (00m14.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m14.9s/10m0s  19984/20000 shared iters
+
+running (00m15.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m15.9s/10m0s  19984/20000 shared iters
+
+running (00m16.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m16.9s/10m0s  19984/20000 shared iters
+
+running (00m17.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m17.9s/10m0s  19984/20000 shared iters
+
+running (00m18.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m18.9s/10m0s  19984/20000 shared iters
+
+running (00m19.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m19.9s/10m0s  19984/20000 shared iters
+
+running (00m20.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m20.9s/10m0s  19984/20000 shared iters
+
+running (00m21.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m21.9s/10m0s  19984/20000 shared iters
+
+running (00m22.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m22.9s/10m0s  19984/20000 shared iters
+
+running (00m23.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m23.9s/10m0s  19984/20000 shared iters
+
+running (00m24.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m24.9s/10m0s  19984/20000 shared iters
+
+running (00m25.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m25.9s/10m0s  19984/20000 shared iters
+
+running (00m26.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m26.9s/10m0s  19984/20000 shared iters
+
+running (00m27.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m27.9s/10m0s  19984/20000 shared iters
+
+running (00m28.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m28.9s/10m0s  19984/20000 shared iters
+
+running (00m29.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m29.9s/10m0s  19984/20000 shared iters
+
+running (00m30.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m30.9s/10m0s  19984/20000 shared iters
+
+running (00m31.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m31.9s/10m0s  19984/20000 shared iters
+
+running (00m32.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m32.9s/10m0s  19984/20000 shared iters
+
+running (00m33.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m33.9s/10m0s  19984/20000 shared iters
+
+running (00m34.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m34.9s/10m0s  19984/20000 shared iters
+
+running (00m35.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m35.9s/10m0s  19984/20000 shared iters
+
+running (00m36.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m36.9s/10m0s  19984/20000 shared iters
+
+running (00m37.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m37.9s/10m0s  19984/20000 shared iters
+
+running (00m38.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m38.9s/10m0s  19984/20000 shared iters
+
+running (00m39.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m39.9s/10m0s  19984/20000 shared iters
+
+running (00m40.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m40.9s/10m0s  19984/20000 shared iters
+
+running (00m41.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m41.9s/10m0s  19984/20000 shared iters
+
+running (00m42.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m42.9s/10m0s  19984/20000 shared iters
+
+running (00m43.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m43.9s/10m0s  19984/20000 shared iters
+
+running (00m44.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m44.9s/10m0s  19984/20000 shared iters
+
+running (00m45.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m45.9s/10m0s  19984/20000 shared iters
+
+running (00m46.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m46.9s/10m0s  19984/20000 shared iters
+
+running (00m47.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m47.9s/10m0s  19984/20000 shared iters
+
+running (00m48.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m48.9s/10m0s  19984/20000 shared iters
+
+running (00m49.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m49.9s/10m0s  19984/20000 shared iters
+
+running (00m50.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m50.9s/10m0s  19984/20000 shared iters
+
+running (00m51.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m51.9s/10m0s  19984/20000 shared iters
+
+running (00m52.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m52.9s/10m0s  19984/20000 shared iters
+
+running (00m53.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m53.9s/10m0s  19984/20000 shared iters
+
+running (00m54.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m54.9s/10m0s  19984/20000 shared iters
+
+running (00m55.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m55.9s/10m0s  19984/20000 shared iters
+
+running (00m56.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m56.9s/10m0s  19984/20000 shared iters
+
+running (00m57.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m57.9s/10m0s  19984/20000 shared iters
+
+running (00m58.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m58.9s/10m0s  19984/20000 shared iters
+
+running (00m59.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  00m59.9s/10m0s  19984/20000 shared iters
+
+running (01m00.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  01m00.9s/10m0s  19984/20000 shared iters
+
+running (01m01.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  01m01.9s/10m0s  19984/20000 shared iters
+
+running (01m02.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  01m02.9s/10m0s  19984/20000 shared iters
+
+running (01m03.9s), 0016/1000 VUs, 19984 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  01m03.9s/10m0s  19984/20000 shared iters
+
+running (01m04.9s), 0005/1000 VUs, 19995 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1000 VUs  01m04.9s/10m0s  19995/20000 shared iters
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 80000  1228.344971/s
+    checks_succeeded...: 24.99% 19995 out of 80000
+    checks_failed......: 75.00% 60005 out of 80000
+
+    ✗ Success (200 OK)
+      ↳  99% — ✓ 19993 / ✗ 7
+    ✗ Duplicate ID (409 Conflict)
+      ↳  0% — ✓ 0 / ✗ 20000
+    ✗ Sold Out (410 Gone)
+      ↳  0% — ✓ 0 / ✗ 20000
+    ✗ Gateway/DB Error (500+)
+      ↳  0% — ✓ 2 / ✗ 19998
+
+    HTTP
+    http_req_duration..............: avg=203.77ms min=92.64ms med=120.86ms max=59.89s p(90)=160.87ms p(95)=253.61ms
+      { expected_response:true }...: avg=189.83ms min=98.83ms med=120.93ms max=59.68s p(90)=160.37ms p(95)=250.23ms
+    http_req_failed................: 2.10%  429 out of 20422
+    http_reqs......................: 20422  313.565762/s
+
+    EXECUTION
+    iteration_duration.............: avg=248.87ms min=98.92ms med=121.07ms max=1m2s   p(90)=161.61ms p(95)=691.6ms 
+    iterations.....................: 20000  307.086243/s
+    vus............................: 5      min=5            max=1000
+    vus_max........................: 1000   min=1000         max=1000
+
+    NETWORK
+    data_received..................: 5.0 MB 77 kB/s
+    data_sent......................: 2.0 MB 31 kB/s
+
+
+
+
+running (01m05.1s), 0000/1000 VUs, 20000 complete and 0 interrupted iterations
+exact_requests ✓ [ 100% ] 1000 VUs  01m05.1s/10m0s  20000/20000 shared iters

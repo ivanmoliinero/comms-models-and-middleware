@@ -1,6 +1,6 @@
 import http from 'k6/http';
 import { SharedArray } from 'k6/data';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 import { scenario } from 'k6/execution';
 
 const data = new SharedArray('requests', function () {
@@ -12,7 +12,6 @@ const data = new SharedArray('requests', function () {
     let line = lines[i].trim();
     if (line.startsWith('BUY')) {
       let parts = line.split(/\s+/);
-      // Formato: BUY client_id request_id
       if (parts.length >= 3) {
         reqs.push({ client_id: parts[1], req_id: parts[2] });
       }
@@ -25,7 +24,7 @@ export const options = {
   scenarios: {
     exact_requests: {
       executor: 'shared-iterations',
-      vus: 100,
+      vus: 800,
       iterations: data.length,
       maxDuration: '10m',
     },
@@ -34,11 +33,25 @@ export const options = {
 
 export default function () {
   const item = data[scenario.iterationInTest];
-  // Concatenamos para crear un tracking_id único (ej: user00001_00001)
   const ticketId = `${item.client_id}_${item.req_id}`;
-  const url = `http://44.200.158.49/buy?ticket_id=${ticketId}`;
+  const url = `http://44.215.107.90/buy?ticket_id=${ticketId}`;
   
-  const res = http.get(url);
+  let res;
+  let retries = 0;
+  const MAX_RETRIES = 3;
+
+  // Real-world retry logic for infrastructure saturation
+  while (retries < MAX_RETRIES) {
+    // The 'tags' parameter fixes the k6 memory warning
+    res = http.get(url, { tags: { name: 'BuyEndpoint' } });
+    
+    if (res.status >= 500) {
+      retries++;
+      sleep(0.5); // Backoff for 500ms to let the AWS network breathe
+    } else {
+      break; // Success (200) or Client Error (409/410) breaks the loop
+    }
+  }
   
   check(res, {
     'Success (200 OK)': (r) => r.status === 200,

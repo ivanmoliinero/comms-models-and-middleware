@@ -301,77 +301,60 @@ curl -i "http://44.193.24.57/buy?ticket_id=aws-production-004"
 
 ## benchmark:: Throughput
 
-Locally, run the following from the path where [[final-versions/unnumbered/V0.0/benchmarks/k6_benchmark_unnumbered.js]] and [[benchmarks/benchmark_unnumbered_20000.txt]] reside.
+Locally, run the following from the path where [[final-versions/unnumbered/V0.0/benchmarks/k6_benchmark.js]] and [[benchmarks/benchmark_unnumbered_20000.txt]] reside.
 
-```bash
-sudo docker run --rm \
-  --network host \
-  -v $(pwd)/benchmark_unnumbered_20000.txt:/benchmark_data.txt:ro \
-  -v $(pwd)/k6_benchmark_unnumbered.js:/k6_benchmark.js:ro \
-  grafana/k6 run /k6_benchmark.js
-  
-# output
-  █ TOTAL RESULTS 
+1. Prepare the data:
 
-    checks_total.......: 80000  3549.807772/s
-    checks_succeeded...: 25.00% 20000 out of 80000
-    checks_failed......: 75.00% 60000 out of 80000
-
-    ✓ Success (200 OK)
-    ✗ Duplicate ID (409 Conflict)
-      ↳  0% — ✓ 0 / ✗ 20000
-    ✗ Sold Out (410 Gone)
-      ↳  0% — ✓ 0 / ✗ 20000
-    ✗ Gateway/DB Error (500+)
-      ↳  0% — ✓ 0 / ✗ 20000
-
-    HTTP
-    http_req_duration..............: avg=111.57ms min=96.06ms med=110.13ms max=550.63ms p(90)=115.29ms p(95)=117.38ms
-      { expected_response:true }...: avg=111.57ms min=96.06ms med=110.13ms max=550.63ms p(90)=115.29ms p(95)=117.38ms
-    http_req_failed................: 0.00%  0 out of 20000
-    http_reqs......................: 20000  887.451943/s
-
-    EXECUTION
-    iteration_duration.............: avg=112.39ms min=96.18ms med=110.27ms max=550.72ms p(90)=115.41ms p(95)=117.53ms
-    iterations.....................: 20000  887.451943/s
-    vus............................: 100    min=100        max=100
-    vus_max........................: 100    min=100        max=100
-
-    NETWORK
-    data_received..................: 4.9 MB 216 kB/s
-    data_sent......................: 2.0 MB 87 kB/s
-
-
-
-
-running (00m22.5s), 000/100 VUs, 20000 complete and 0 interrupted iterations
-exact_requests ✓ [ 100% ] 100 VUs  00m22.5s/10m0s  20000/20000 shared iters
+For each *redis-master*:
+```redis-cli
+FLUSHALL
+SET tickets-counter 10000
 ```
 
-This could seem a very low RPS number, so let's see where the bottleneck sits performing a [[#benchmark Redis loopback|localhost benchmark]] to a *redis-master*.
-## benchmark:: Redis loopback
-
-> [!warning] Important
-> The following benchmark has been ran from the same machine that it's being tested. This could harm the results of it, but since Redis is primarily *single-threaded* it won't affect the results.
+2. Execute the benchmark:
 
 ```bash
+sudo docker run --rm   --network host   -v $(pwd)/benchmark_unnumbered_20000.txt:/benchmark_data.txt:ro   -v $(pwd)/k6_benchmark.js:/k6_benchmark.js:ro   grafana/k6 run /k6_benchmark.js > k6-full-result-vis-800.txt
+```
+
+[benchmark:: Throughput] [vus:: 800] [workers: 2 per gateway]
+```embed-bash
+PATH: "vault://final-versions/unnumbered/V0.0/benchmarks/k6-full-result-vis-800.txt"
+```
+
+Final throughput: **3506 RPS**.
+## benchmark:: Redis
+
+> [!warning] Important
+> The following benchmark has been ran from another machine so it doesn't use the benchmarked resources themselves.
+
+```bash
+# initialize the database state
 ssh -i SD-task1-key-pair.pem ubuntu@<redis-master-a>
 
 # inside SSH -------------------------------------------------------------------
-sudo docker run --rm     --network host  redis:latest    redis-benchmark -h 127.0.0.1 -c 5 -n 20000 -q --threads 5 -r 1000000 --csv        fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__
-"test","rps","avg_latency_ms","min_latency_ms","p50_latency_ms","p95_latency_ms","p99_latency_ms","max_latency_ms"
-"fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__","961.72","5.155","2.416","5.799","6.135","6.399","12.783"
+sudo docker exec redis-master redis-cli FLUSHALL
+sudo docker exec redis-master redis-cli SET tickets-counter 10000
 ```
 
-![[final-versions/unnumbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
+```bash
+ssh -i SD-task1-key-pair.pem ubuntu@<redis-master-b>
+
+# inside SSH -------------------------------------------------------------------
+sudo docker run --rm     --network host  redis:latest    redis-benchmark -h 10.0.1.34 -c 100 -n 10000 -q --threads 8 -r 1000000000 --csv        fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__
+"test","rps","avg_latency_ms","min_latency_ms","p50_latency_ms","p95_latency_ms","p99_latency_ms","max_latency_ms"
+"fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__","9960.16","8.179","4.064","8.615","10.591","13.455","20.463"
+```
+
+![[final-versions/unnumbered/V0.0/benchmarks/redis-master-a-benchmark.csv]]
 ```csvtable
 columns:
 - test
 - rps
 - p99_latency_ms	
-source: [[final-versions/unnumbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
+source: [[final-versions/unnumbered/V0.0/benchmarks/redis-master-a-benchmark.csv]]
 ```
-Those are awful RPS and latency values considering this test was run in the *loopback* network. This shows the real bottleneck of the system, thus, it could be proved by increasing the number of shards, or the speed of the storage media.
+In conclusion, Redis throughput is not the bottleneck in this case.
 
 # Variants
 
