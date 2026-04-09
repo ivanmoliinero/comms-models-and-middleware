@@ -90,6 +90,28 @@ end)
 EOF
 ```
 
+```LUA
+redis.register_function('buy_ticket', function(keys, args)
+  -- keys[1] = tracking_ids_set, keys[2] = seat_key
+  if redis.call('SISMEMBER', keys[1], args[1]) == 1 then return -1 end
+  
+  -- DEL returns 1 if the key was deleted, 0 if it didn't exist
+  if redis.call('DEL', keys[2]) == 1 then 
+    redis.call('SADD', keys[1], args[1])
+    return 1 
+  end
+  return -2
+end
+
+redis.register_function('rollback_ticket', function(keys, args)
+  if redis.call('SREM', keys[1], args[1]) == 1 then 
+    -- Recreate the seat ticket
+    return redis.call('SET', keys[2], '1') 
+  end
+  return 0
+end
+```
+
 ## Populate Redis shards
 
 ### Shard A (redis-master-a)
@@ -185,8 +207,6 @@ sudo docker run --rm \
     data_sent......................: 2.7 MB 98 kB/s
 
 
-
-
 running (00m27.8s), 000/100 VUs, 25997 complete and 0 interrupted iterations
 exact_requests ✓ [ 100% ] 100 VUs  00m27.8s/10m0s  25997/25997 shared iters
 
@@ -196,13 +216,13 @@ exact_requests ✓ [ 100% ] 100 VUs  00m27.8s/10m0s  25997/25997 shared iters
 A local `redis-benchmark` has been executed to see Redis real speed isolated from the system:
 
 > [!warning] Important
-> The following benchmark has been ran from the same machine that it's being tested. This could harm the results of it, but since Redis is primarily *single-threaded* it won't affect the results.
+> The following benchmark has been ran from another machine so it doesn't use the benchmarked resources themselves.
 
 ```bash
-sudo docker run --rm --network host redis:latest redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 20000 -q --threads 8 -r 20000 --csv fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__
-# output
-"test","rps","avg_latency_ms","min_latency_ms","p50_latency_ms","p95_latency_ms","p99_latency_ms","max_latency_ms"
-"fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__","13280.21","6.760","3.984","5.999","9.327","10.247","19.215"
+sudo docker exec redis-master redis-cli FLUSHALL
+sudo docker exec redis-master redis-cli -x EVAL "for i=1, 10000, 1 do redis.call('SET', 'seat-'..i, '1') end" 0
+
+sudo docker run --rm --network host redis:latest redis-benchmark -h 10.0.1.34 -p 6379 -c 100 -n 10000 -q --threads 8 --csv EVAL "local id = redis.call('INCR', KEYS[2]); local seat = 'seat-' .. id; local user = 'user-' .. id; if redis.call('SISMEMBER', KEYS[1], user) == 1 then return -1 end; if redis.call('DEL', seat) == 1 then redis.call('SADD', KEYS[1], user); return 1 end; return -2;" 2 purchased_tracking_ids bench_counter
 ```
 
 ![[final-versions/numbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
@@ -213,26 +233,4 @@ columns:
 - p99_latency_ms	
 source: [[final-versions/numbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
 ```
-In this case, Redis has been significantly faster than in the [[Development/Experiments/Final-version-unnumbered-V0.0|Final-version-unnumbered-V0.0]]. We've said that the reason of Redis server's low speed was the media storage, and though this seems hidden, it is the same reason why this benchmark is faster. We have 20000 requests in this benchmark, but this is not assuring that all seats will be bought since the `seat_id` is a random value. If we check the remaining seats available after executing the benchmark, we will see that 4.332 are still available. The execution path of the `buy_ticket` function when a sold-out response is going to be returned does not need to persist anything, thus they are much more master.
-This is even mathematically expected. The RPS for Redis with non-persisting operations is about 39.525 RPS, while the speed for executing 2 write operations (persisting) it's around 7.029 RPS. The following calculus gives us the expected RPS:
-$$
-\huge
-{
- \frac{39.525\ RPS\ · 4.332\ +\ 7.029\ RPS\ · (20.000-4.332)}{20.000} = 14.067
-}
-$$
-
-This totally confirms our hypothesis.
-
-So the real speed that it's limiting the system for the *numbered-tickets* version is 7.029 RPS, concluding this is not the bottleneck.
-
-> [!info]
-> Commands used to measure the used speeds used in the calculus:
-> - Double write benchmark:
-> ```bash
-> sudo docker run --rm --network host redis:latest redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 20000 -q --threads 8 --csv -r 1000000 EVAL "redis.call('SET', KEYS[1], '1'); redis.call('SADD', KEYS[2], KEYS[1])" 2 __rand_int__ target_set
-> ```
-> - Single read benchmark:
-> ```bash
-> sudo docker run --rm --network host redis:latest redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 20000 -q --threads 8 -r 1000000 --csv GET __rand_int__
-> ```
+In conclusion, Redis throughput is not the bottleneck in this case.

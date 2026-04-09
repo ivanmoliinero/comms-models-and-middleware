@@ -1,2 +1,2 @@
 "test","rps","avg_latency_ms","min_latency_ms","p50_latency_ms","p95_latency_ms","p99_latency_ms","max_latency_ms"
-"fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__","13280.21","6.760","3.984","5.999","9.327","10.247","19.215"
+"buy_ticket","7462.69","11.155","3.664","9.431","20.127","31.439","86.079"

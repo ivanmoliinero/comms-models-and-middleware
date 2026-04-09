@@ -25,7 +25,7 @@ export const options = {
   scenarios: {
     exact_requests: {
       executor: 'shared-iterations',
-      vus: 100,                  // 100 concurrent network streams
+      vus: 1500,                 // concurrent network streams
       iterations: data.length,   // Exactly 60,000 round-trips
       maxDuration: '10m',        // Failsafe timeout (will exit early upon completion)
     },
@@ -34,7 +34,7 @@ export const options = {
 
 export default function () {
   const item = data[scenario.iterationInTest];
-  const url = `http://44.200.158.49/buy?ticket_id=${item.client_id}&seat_id=${item.seat_id}`;
+  const url = `http://44.215.107.90/buy?ticket_id=${item.client_id}&seat_id=${item.seat_id}`;
   
   // 2. Synchronous Blocking Execution
   // The VU will wait here until the Gateway returns the payload.
