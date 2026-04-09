@@ -143,36 +143,60 @@ Again, this is the expected behavior.
 # Benchmarks
 ## benchmark:: Throughput
 
-The LUA script [[final-versions/numbered/V0.0/benchmarks/file_benchmark.lua]] parses the [[benchmarks/benchmark_numbered_60000.txt|benchmark_numbered_60000.txt]] file to benchmark its requests.
-
-```embed-bash
-PATH: "vault://final-versions/numbered/V0.0/benchmarks/file_benchmark.lua"
-```
+Locally, run the following from the path where [[final-versions/numbered/V0.0/benchmarks/k6_benchmark.js]] and [[benchmarks/benchmark_numbered_60000.txt|benchmark_numbered_60000.txt]] reside.
 
 ```bash
 sudo docker run --rm \
   --network host \
   -v $(pwd)/benchmark_numbered_60000.txt:/benchmark_data.txt:ro \
-  -v $(pwd)/file_benchmark.lua:/benchmark.lua:ro \
-  williamyeh/wrk \
-  -t1 -c100 -d60s -s /benchmark.lua http://44.193.24.57
+  -v $(pwd)/k6_benchmark.js:/k6_benchmark.js:ro \
+  grafana/k6 run /k6_benchmark.js
   
-# output
-Running 1m test @ http://44.193.24.57
-  1 threads and 100 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency   128.40ms   48.91ms 752.35ms   91.70%
-    Req/Sec   801.28    231.92     1.30k    79.62%
-  25913 requests in 1.00m, 5.86MB read
-  Non-2xx or 3xx responses: 5996
-Requests/sec:    431.88
-Transfer/sec:    100.00KB
+  # output
+    █ TOTAL RESULTS 
+
+    checks_total.......: 103988 3744.745414/s
+    checks_succeeded...: 25.00% 25997 out of 103988
+    checks_failed......: 75.00% 77991 out of 103988
+
+    ✗ Success (200 OK)
+      ↳  76% — ✓ 20000 / ✗ 5997
+    ✗ Duplicate ID (409 Conflict)
+      ↳  0% — ✓ 0 / ✗ 25997
+    ✗ Sold Out (410 Gone)
+      ↳  23% — ✓ 5997 / ✗ 20000
+    ✗ Gateway/DB Error (500+)
+      ↳  0% — ✓ 0 / ✗ 25997
+
+    HTTP
+    http_req_duration..............: avg=105.57ms min=89.16ms med=103.99ms max=438.09ms p(90)=113.75ms p(95)=117.2ms 
+      { expected_response:true }...: avg=107.17ms min=92.23ms med=105.82ms max=438.09ms p(90)=114.49ms p(95)=117.81ms
+    http_req_failed................: 23.06% 5997 out of 25997
+    http_reqs......................: 25997  936.186354/s
+
+    EXECUTION
+    iteration_duration.............: avg=106.32ms min=89.28ms med=104.1ms  max=438.23ms p(90)=113.88ms p(95)=117.34ms
+    iterations.....................: 25997  936.186354/s
+    vus............................: 100    min=100           max=100
+    vus_max........................: 100    min=100           max=100
+
+    NETWORK
+    data_received..................: 6.2 MB 222 kB/s
+    data_sent......................: 2.7 MB 98 kB/s
+
+
+
+
+running (00m27.8s), 000/100 VUs, 25997 complete and 0 interrupted iterations
+exact_requests ✓ [ 100% ] 100 VUs  00m27.8s/10m0s  25997/25997 shared iters
+
 ```
 
 A local `redis-benchmark` has been executed to see Redis real speed isolated from the system:
 
 ```bash
-sudo docker run --rm --network host redis:latest redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 60000 -q --threads 8 -r 20000 --csv fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__
+sudo docker run --rm --network host redis:latest redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 20000 -q --threads 8 -r 200000 --csv fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__
+# output
 "test","rps","avg_latency_ms","min_latency_ms","p50_latency_ms","p95_latency_ms","p99_latency_ms","max_latency_ms"
 "fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__","13289.04","6.695","1.672","5.719","9.343","11.279","24.479"
 ```
@@ -185,4 +209,13 @@ columns:
 - p99_latency_ms	
 source: [[final-versions/numbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
 ```
-
+In this case, Redis has been significantly faster than in the [[Development/Experiments/Final-version-unnumbered-V0.0|Final-version-unnumbered-V0.0]]. We've said that the reason of Redis server's low speed was the media storage, and through this seems hidden here, it is the same reason why this benchmark is faster. We have 20000 requests in this benchmark, but this is not assuring that all seats will be bought, since the `seat_id` is a random value. If we check the remaining seats available after executing the benchmark, we will see that 1300 are remaining. The execution path of the `buy_ticket` function when a sold-out response is going to be returned does not need to persist anything, thus they are much more master.
+This is even mathematically expected. The RPS for Redis without persistence is about 140.000 as we measured in previous benchmarks. The following calculus gives us the expected RPS:
+$$
+\huge
+{
+ \frac{140.000\ RPS\ · 1.300\ +\ 1.000\ RPS\ · 18.700}{20.000} = 10.035
+}
+$$
+> [!important]
+> Even though the used speeds are not empirical, they give a very aproxímate value.
