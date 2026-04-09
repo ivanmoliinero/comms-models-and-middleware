@@ -267,3 +267,10 @@ PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-full-result-vis-1000.t
 
 Finally, a good throughput of **2564 RPS**. But let's thoroughly analyse all the system with real time data to find the bottleneck.
 #todo
+
+## benchmark:: 1 Worker per Gateway
+
+[benchmark:: Throughput] [vus:: 800] [workers: 1 per gateway]
+```embed-bash
+PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-full-result-vis-800-1-worker-per-gateway.txt"
+```
