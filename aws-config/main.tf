@@ -231,7 +231,7 @@ resource "aws_instance" "worker_nodes" {
 
   # The RabbitMQ accessed server will be the first one available for all.
   user_data = templatefile("worker_setup.tftpl", {
-    rabbitmq_hosts = join(",", concat([aws_instance.rabbitmq_primary[0].private_ip], aws_instance.rabbitmq_nodes[*].private_ip)),
+    rabbitmq_host = count.index % 3 == 0 ? aws_instance.rabbitmq_primary[0].private_ip : aws_instance.rabbitmq_nodes[(count.index % 3) - 1].private_ip,
     redis_host = aws_instance.redis_primary[0].private_ip
   })
 

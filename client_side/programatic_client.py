@@ -53,7 +53,7 @@ def client_publisher(lines_list):
     channel.exchange_declare(
         exchange=EXCHANGE_NAME,
         exchange_type='x-consistent-hash',
-        durable=True
+        durable=False
     )
 
     # 3. Explicitly declare 3 Quorum Queues and bind them to the exchange.
@@ -62,9 +62,6 @@ def client_publisher(lines_list):
         shard_name = f'ticket.shard.{i}'
         channel.queue_declare(
             queue=shard_name,
-            durable=True,
-            arguments={'x-queue-type': 'quorum',
-                       'x-quorum-initial-group-size': 3}
         )
         channel.queue_bind(
             queue=shard_name,

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set RABBITMQ_HOSTS (expected as a comma-separated string) and REDIS_HOST
-RABBITMQ_HOSTS="${rabbitmq_hosts}"
+RABBITMQ_HOST="${rabbitmq_host}"
 REDIS_HOST="${redis_host}"
 
 # Update the system packages
@@ -18,7 +18,7 @@ cd /home/ec2-user
 git clone $REPO_URL
 
 cd $TARGET_DIR
-git checkout testing/indirect-rabbit-shard-repl # TODO: change for final version
+git checkout testing/indirect-consistent-hashing-no-quorum # TODO: change for final version
 
 # Ensure ec2-user owns the cloned repository
 chown -R ec2-user:ec2-user $TARGET_DIR
@@ -39,7 +39,7 @@ Type=simple
 User=ec2-user
 WorkingDirectory=$TARGET_DIR
 # Pass the comma-separated list of RabbitMQ IPs to the worker script
-ExecStart=/home/ec2-user/venv/bin/python3 -u $TARGET_DIR/server_side/worker.py --rabbitmq-hosts $RABBITMQ_HOSTS --redis-host $REDIS_HOST
+ExecStart=/home/ec2-user/venv/bin/python3 -u $TARGET_DIR/server_side/worker.py --rabbitmq-hosts $RABBITMQ_HOST --redis-host $REDIS_HOST
 Restart=always
 RestartSec=5
 
