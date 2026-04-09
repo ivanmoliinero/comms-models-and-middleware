@@ -46,16 +46,21 @@ COUNTER_VAR='ticket_counter'
 START_TIME_KEY='start_time'
 END_TIME_KEY='end_time'
 EXCHANGE_NAME='ticket.requests'
-QUEUE_NAME='ticket.requests.classic'
 
 parser = argparse.ArgumentParser(description="RabbitMQ and Redis connection script.")
 parser.add_argument('--rabbitmq-host', type=str, default='localhost',
                     help='RabbitMQ designated IP by Terraform')
-parser.add_argument('--redis-host', type=str, default='localhost', help='Redis IP')
+parser.add_argument('--redis-host', type=str, default='localhost',
+                                                        help='Redis IP')
+parser.add_argument('--shard-num', type=int, default=0,
+                    help='Shard number')
 args, unknown = parser.parse_known_args()
 
 rabbitmq_host = args.rabbitmq_host
 redis_host = args.redis_host
+shard_num = args.shard_num
+
+QUEUE_NAME=f'ticket.shard.{shard_num}'
 
 client: redis.Redis
 auto_incr: any
