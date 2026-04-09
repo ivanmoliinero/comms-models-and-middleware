@@ -1,0 +1,248 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /k6_benchmark.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 1500 max VUs, 10m30s max duration (incl. graceful stop):
+              * exact_requests: 25997 iterations shared among 1500 VUs (maxDuration: 10m0s, gracefulStop: 30s)
+
+
+running (00m00.9s), 1500/1500 VUs, 1219 complete and 0 interrupted iterations
+exact_requests   [   5% ] 1500 VUs  00m00.9s/10m0s  01219/25997 shared iters
+
+running (00m01.9s), 1500/1500 VUs, 5993 complete and 0 interrupted iterations
+exact_requests   [  23% ] 1500 VUs  00m01.9s/10m0s  05993/25997 shared iters
+
+running (00m02.9s), 1500/1500 VUs, 12196 complete and 0 interrupted iterations
+exact_requests   [  47% ] 1500 VUs  00m02.9s/10m0s  12196/25997 shared iters
+
+running (00m03.9s), 1500/1500 VUs, 17907 complete and 0 interrupted iterations
+exact_requests   [  69% ] 1500 VUs  00m03.9s/10m0s  17907/25997 shared iters
+
+running (00m04.9s), 1500/1500 VUs, 23066 complete and 0 interrupted iterations
+exact_requests   [  89% ] 1500 VUs  00m04.9s/10m0s  23066/25997 shared iters
+
+running (00m05.9s), 0746/1500 VUs, 25251 complete and 0 interrupted iterations
+exact_requests   [  97% ] 1500 VUs  00m05.9s/10m0s  25251/25997 shared iters
+
+running (00m06.9s), 0523/1500 VUs, 25474 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m06.9s/10m0s  25474/25997 shared iters
+
+running (00m07.9s), 0519/1500 VUs, 25478 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m07.9s/10m0s  25478/25997 shared iters
+
+running (00m08.9s), 0519/1500 VUs, 25478 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m08.9s/10m0s  25478/25997 shared iters
+
+running (00m09.9s), 0519/1500 VUs, 25478 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m09.9s/10m0s  25478/25997 shared iters
+
+running (00m10.9s), 0518/1500 VUs, 25479 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m10.9s/10m0s  25479/25997 shared iters
+
+running (00m11.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m11.9s/10m0s  25484/25997 shared iters
+
+running (00m12.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m12.9s/10m0s  25484/25997 shared iters
+
+running (00m13.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m13.9s/10m0s  25484/25997 shared iters
+
+running (00m14.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m14.9s/10m0s  25484/25997 shared iters
+
+running (00m15.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m15.9s/10m0s  25484/25997 shared iters
+
+running (00m16.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m16.9s/10m0s  25484/25997 shared iters
+
+running (00m17.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m17.9s/10m0s  25484/25997 shared iters
+
+running (00m18.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m18.9s/10m0s  25484/25997 shared iters
+
+running (00m19.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m19.9s/10m0s  25484/25997 shared iters
+
+running (00m20.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m20.9s/10m0s  25484/25997 shared iters
+
+running (00m21.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m21.9s/10m0s  25484/25997 shared iters
+
+running (00m22.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m22.9s/10m0s  25484/25997 shared iters
+
+running (00m23.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m23.9s/10m0s  25484/25997 shared iters
+
+running (00m24.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m24.9s/10m0s  25484/25997 shared iters
+
+running (00m25.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m25.9s/10m0s  25484/25997 shared iters
+
+running (00m26.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m26.9s/10m0s  25484/25997 shared iters
+
+running (00m27.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m27.9s/10m0s  25484/25997 shared iters
+
+running (00m28.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m28.9s/10m0s  25484/25997 shared iters
+
+running (00m29.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m29.9s/10m0s  25484/25997 shared iters
+
+running (00m30.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m30.9s/10m0s  25484/25997 shared iters
+
+running (00m31.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m31.9s/10m0s  25484/25997 shared iters
+
+running (00m32.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m32.9s/10m0s  25484/25997 shared iters
+
+running (00m33.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m33.9s/10m0s  25484/25997 shared iters
+
+running (00m34.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m34.9s/10m0s  25484/25997 shared iters
+
+running (00m35.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m35.9s/10m0s  25484/25997 shared iters
+
+running (00m36.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m36.9s/10m0s  25484/25997 shared iters
+
+running (00m37.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m37.9s/10m0s  25484/25997 shared iters
+
+running (00m38.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m38.9s/10m0s  25484/25997 shared iters
+
+running (00m39.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m39.9s/10m0s  25484/25997 shared iters
+
+running (00m40.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m40.9s/10m0s  25484/25997 shared iters
+
+running (00m41.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m41.9s/10m0s  25484/25997 shared iters
+
+running (00m42.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m42.9s/10m0s  25484/25997 shared iters
+
+running (00m43.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m43.9s/10m0s  25484/25997 shared iters
+
+running (00m44.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m44.9s/10m0s  25484/25997 shared iters
+
+running (00m45.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m45.9s/10m0s  25484/25997 shared iters
+
+running (00m46.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m46.9s/10m0s  25484/25997 shared iters
+
+running (00m47.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m47.9s/10m0s  25484/25997 shared iters
+
+running (00m48.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m48.9s/10m0s  25484/25997 shared iters
+
+running (00m49.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m49.9s/10m0s  25484/25997 shared iters
+
+running (00m50.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m50.9s/10m0s  25484/25997 shared iters
+
+running (00m51.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m51.9s/10m0s  25484/25997 shared iters
+
+running (00m52.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m52.9s/10m0s  25484/25997 shared iters
+
+running (00m53.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m53.9s/10m0s  25484/25997 shared iters
+
+running (00m54.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m54.9s/10m0s  25484/25997 shared iters
+
+running (00m55.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m55.9s/10m0s  25484/25997 shared iters
+
+running (00m56.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m56.9s/10m0s  25484/25997 shared iters
+
+running (00m57.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m57.9s/10m0s  25484/25997 shared iters
+
+running (00m58.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m58.9s/10m0s  25484/25997 shared iters
+
+running (00m59.9s), 0513/1500 VUs, 25484 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1500 VUs  00m59.9s/10m0s  25484/25997 shared iters
+
+running (01m00.9s), 0384/1500 VUs, 25613 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1500 VUs  01m00.9s/10m0s  25613/25997 shared iters
+
+running (01m01.9s), 0384/1500 VUs, 25613 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1500 VUs  01m01.9s/10m0s  25613/25997 shared iters
+
+running (01m02.9s), 0384/1500 VUs, 25613 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1500 VUs  01m02.9s/10m0s  25613/25997 shared iters
+
+running (01m03.9s), 0135/1500 VUs, 25862 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1500 VUs  01m03.9s/10m0s  25862/25997 shared iters
+
+running (01m04.9s), 0005/1500 VUs, 25992 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 1500 VUs  01m04.9s/10m0s  25992/25997 shared iters
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 103988 1597.88326/s
+    checks_succeeded...: 24.50% 25484 out of 103988
+    checks_failed......: 75.49% 78504 out of 103988
+
+    ✗ Success (200 OK)
+      ↳  72% — ✓ 18847 / ✗ 7150
+    ✗ Duplicate ID (409 Conflict)
+      ↳  0% — ✓ 0 / ✗ 25997
+    ✗ Sold Out (410 Gone)
+      ↳  22% — ✓ 5864 / ✗ 20133
+    ✗ Gateway/DB Error (500+)
+      ↳  2% — ✓ 773 / ✗ 25224
+
+    HTTP
+    http_req_duration..............: avg=1.33s    min=89.98ms med=116.34ms max=59.71s p(90)=192.04ms p(95)=1.01s   
+      { expected_response:true }...: avg=154.56ms min=97.09ms med=116.78ms max=10.92s p(90)=147.27ms p(95)=169.12ms
+    http_req_failed................: 27.50% 7150 out of 25997
+    http_reqs......................: 25997  399.470815/s
+
+    EXECUTION
+    iteration_duration.............: avg=1.44s    min=90.09ms med=116.47ms max=1m0s   p(90)=202.04ms p(95)=1.6s    
+    iterations.....................: 25997  399.470815/s
+    vus............................: 5      min=5             max=1500
+    vus_max........................: 1500   min=1500          max=1500
+
+    NETWORK
+    data_received..................: 6.1 MB 94 kB/s
+    data_sent......................: 2.7 MB 42 kB/s
+
+
+
+
+running (01m05.1s), 0000/1500 VUs, 25997 complete and 0 interrupted iterations
+exact_requests ✓ [ 100% ] 1500 VUs  01m05.1s/10m0s  25997/25997 shared iters

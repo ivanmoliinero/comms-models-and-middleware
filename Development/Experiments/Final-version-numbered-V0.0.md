@@ -234,3 +234,38 @@ columns:
 source: [[final-versions/numbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
 ```
 In conclusion, Redis throughput is not the bottleneck in this case.
+
+## Analysis of results
+
+Looking at the [[#benchmark Throughput]] results, one could think that the system has an extreme bad performance compared to what Redis is capable of doing, so in conclusion you could think that there is an extreme unbalance in the system's architecture, but it is not.
+In [[#benchmark Throughput]] we had been using `vus: 100`, which stands for ***virtual users***. The tool itself have been limiting the requests generation rate, so let's see what happens if we increase this number to really stress the system. A good number could be a bit less than $\large{4096 · 2 = 8192}$ since 4096 is the configured `worker_connections` parameter of the gateways' `nginx.conf` (we need a bit less because here are included all the gateway's connections, such as those from database pool). Though, those are lots of connections, so we are going to reduce it further to `vue: 3500` (you will see why next).
+
+The whole output does not fit into an explanatory document, so just the most important sections of it will be showed.
+
+The first 165 lines show how the system quickly responds to the **90 %** of the requests. From here on out, the system gets stucked.
+
+
+[benchmark:: Throughput] [vus:: 3500]
+```embed-bash
+PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-result-vus-3500.txt"
+LINES: "5-9, 158-165"
+```
+
+The *total results* show that 575 gateway errors have occurred.
+
+```embed-bash
+PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-result-vus-3500.txt"
+LINES: "168-203"
+```
+
+The system clearly exhausted, so let's execute another benchmark with `vus: 1000`.
+
+[benchmark:: Throughput] [vus:: 1000]
+```embed-bash
+PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-full-result-vis-1000.txt"
+```
+
+Finally, a good throughput of **2564 RPS**.
+
+
+
