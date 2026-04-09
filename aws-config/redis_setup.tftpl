@@ -23,7 +23,8 @@ docker run -d \
   --hostname $(hostname) \
   -p 6379:6379 \
   redis:latest \
-  redis-server --requirepass $REDIS_PASS
+  redis-server --requirepass $REDIS_PASS \
+  --save ""
 
 # Wait loop: Blocks execution until the Redis application inside the container is fully running
 echo "Waiting for Redis container to initialize..."

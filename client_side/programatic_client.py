@@ -58,7 +58,7 @@ def client_publisher(lines_list):
 
     # 3. Explicitly declare 3 Quorum Queues and bind them to the exchange.
     # The routing_key '1' acts as the weight (meaning all 3 queues receive equal traffic).
-    for i in range(1, 4):
+    for i in range(0, 3):
         shard_name = f'ticket.shard.{i}'
         channel.queue_declare(
             queue=shard_name,
@@ -105,7 +105,7 @@ if __name__ == '__main__':
         total_pending_messages = 0
 
         # Iterate over the exactly known 3 shard queues
-        for i in range(1, 4):
+        for i in range(0, 3):
             shard_name = f'ticket.shard.{i}'
 
             # The passive=True flag checks the queue state without modifying it
