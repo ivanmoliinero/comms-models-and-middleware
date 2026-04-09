@@ -301,39 +301,66 @@ curl -i "http://44.193.24.57/buy?ticket_id=aws-production-004"
 
 ## benchmark:: Throughput
 
-The provided benchmarking file ([[benchmarks/benchmark_unnumbered_20000.txt]]) specifies making 20.000 requests, without any retry. This can be achieved with the following LUA script and the `wrk` tool used previously throughout this work.
-
-```embed-bash
-PATH: "vault://final-versions/unnumbered/V0.0/benchmarks/sequential_benchmark.lua"
-```
+Locally, run the following from the path where [[final-versions/unnumbered/V0.0/benchmarks/k6_benchmark_unnumbered.js]] and [[benchmarks/benchmark_unnumbered_20000.txt]] reside.
 
 ```bash
-sudo docker run --rm   --network host   -v $(pwd)/sequential_benchmark.lua:/benchmark.lua   williamyeh/wrk   -t1 -c100 -d23s -s /benchmark.lua http://44.193.24.57/buy
-
+sudo docker run --rm \
+  --network host \
+  -v $(pwd)/benchmark_unnumbered_20000.txt:/benchmark_data.txt:ro \
+  -v $(pwd)/k6_benchmark_unnumbered.js:/k6_benchmark.js:ro \
+  grafana/k6 run /k6_benchmark.js
+  
 # output
-Running 23s test @ http://44.193.24.57/buy
-  1 threads and 100 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency   111.67ms   16.36ms 435.20ms   97.59%
-    Req/Sec     0.90k   142.01     1.01k    85.59%
-  20565 requests in 23.07s, 4.75MB read
-  Non-2xx or 3xx responses: 565
-Requests/sec:    891.44
-Transfer/sec:    210.78KB
+  █ TOTAL RESULTS 
+
+    checks_total.......: 80000  3549.807772/s
+    checks_succeeded...: 25.00% 20000 out of 80000
+    checks_failed......: 75.00% 60000 out of 80000
+
+    ✓ Success (200 OK)
+    ✗ Duplicate ID (409 Conflict)
+      ↳  0% — ✓ 0 / ✗ 20000
+    ✗ Sold Out (410 Gone)
+      ↳  0% — ✓ 0 / ✗ 20000
+    ✗ Gateway/DB Error (500+)
+      ↳  0% — ✓ 0 / ✗ 20000
+
+    HTTP
+    http_req_duration..............: avg=111.57ms min=96.06ms med=110.13ms max=550.63ms p(90)=115.29ms p(95)=117.38ms
+      { expected_response:true }...: avg=111.57ms min=96.06ms med=110.13ms max=550.63ms p(90)=115.29ms p(95)=117.38ms
+    http_req_failed................: 0.00%  0 out of 20000
+    http_reqs......................: 20000  887.451943/s
+
+    EXECUTION
+    iteration_duration.............: avg=112.39ms min=96.18ms med=110.27ms max=550.72ms p(90)=115.41ms p(95)=117.53ms
+    iterations.....................: 20000  887.451943/s
+    vus............................: 100    min=100        max=100
+    vus_max........................: 100    min=100        max=100
+
+    NETWORK
+    data_received..................: 4.9 MB 216 kB/s
+    data_sent......................: 2.0 MB 87 kB/s
+
+
+
+
+running (00m22.5s), 000/100 VUs, 20000 complete and 0 interrupted iterations
+exact_requests ✓ [ 100% ] 100 VUs  00m22.5s/10m0s  20000/20000 shared iters
 ```
 
-> [!note]
-> We've set the duration to 23 seconds since this was the theoretical time where the 20.000 should have been already performed (based on theoretical speeds of another non-documented benchmark).
+This could seem a very low RPS number, so let's see where the bottleneck sits performing a [[#benchmark Redis loopback|localhost benchmark]] to a *redis-master*.
+## benchmark:: Redis loopback
 
-This could seem a very low RPS number, so let's see where the bottleneck sits performing a localhost benchmark to a *redis-master* (in this case *redis-master-a*).
+> [!warning] Important
+> The following benchmark has been ran from the same machine that it's being tested. This could harm the results of it, but since Redis is primarily *single-threaded* it won't affect the results.
 
 ```bash
 ssh -i SD-task1-key-pair.pem ubuntu@<redis-master-a>
 
 # inside SSH -------------------------------------------------------------------
-sudo docker run --rm     --network host  redis:latest    redis-benchmark -h 127.0.0.1 -c 5 -n 40000 -q --threads 5 -r 20000 --csv        fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__
+sudo docker run --rm     --network host  redis:latest    redis-benchmark -h 127.0.0.1 -c 5 -n 20000 -q --threads 5 -r 1000000 --csv        fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__
 "test","rps","avg_latency_ms","min_latency_ms","p50_latency_ms","p95_latency_ms","p99_latency_ms","max_latency_ms"
-"fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__","1078.66","4.606","0.048","5.775","6.167","6.423","11.095"
+"fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__","961.72","5.155","2.416","5.799","6.135","6.399","12.783"
 ```
 
 ![[final-versions/unnumbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]

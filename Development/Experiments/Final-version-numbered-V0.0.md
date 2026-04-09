@@ -192,13 +192,17 @@ exact_requests ✓ [ 100% ] 100 VUs  00m27.8s/10m0s  25997/25997 shared iters
 
 ```
 
+## benchmark:: Redis loopback
 A local `redis-benchmark` has been executed to see Redis real speed isolated from the system:
 
+> [!warning] Important
+> The following benchmark has been ran from the same machine that it's being tested. This could harm the results of it, but since Redis is primarily *single-threaded* it won't affect the results.
+
 ```bash
-sudo docker run --rm --network host redis:latest redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 20000 -q --threads 8 -r 200000 --csv fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__
+sudo docker run --rm --network host redis:latest redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 20000 -q --threads 8 -r 20000 --csv fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__
 # output
 "test","rps","avg_latency_ms","min_latency_ms","p50_latency_ms","p95_latency_ms","p99_latency_ms","max_latency_ms"
-"fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__","13289.04","6.695","1.672","5.719","9.343","11.279","24.479"
+"fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__","13280.21","6.760","3.984","5.999","9.327","10.247","19.215"
 ```
 
 ![[final-versions/numbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
@@ -209,13 +213,26 @@ columns:
 - p99_latency_ms	
 source: [[final-versions/numbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
 ```
-In this case, Redis has been significantly faster than in the [[Development/Experiments/Final-version-unnumbered-V0.0|Final-version-unnumbered-V0.0]]. We've said that the reason of Redis server's low speed was the media storage, and through this seems hidden here, it is the same reason why this benchmark is faster. We have 20000 requests in this benchmark, but this is not assuring that all seats will be bought, since the `seat_id` is a random value. If we check the remaining seats available after executing the benchmark, we will see that 1300 are remaining. The execution path of the `buy_ticket` function when a sold-out response is going to be returned does not need to persist anything, thus they are much more master.
-This is even mathematically expected. The RPS for Redis without persistence is about 140.000 as we measured in previous benchmarks. The following calculus gives us the expected RPS:
+In this case, Redis has been significantly faster than in the [[Development/Experiments/Final-version-unnumbered-V0.0|Final-version-unnumbered-V0.0]]. We've said that the reason of Redis server's low speed was the media storage, and though this seems hidden, it is the same reason why this benchmark is faster. We have 20000 requests in this benchmark, but this is not assuring that all seats will be bought since the `seat_id` is a random value. If we check the remaining seats available after executing the benchmark, we will see that 4.332 are still available. The execution path of the `buy_ticket` function when a sold-out response is going to be returned does not need to persist anything, thus they are much more master.
+This is even mathematically expected. The RPS for Redis with non-persisting operations is about 39.525 RPS, while the speed for executing 2 write operations (persisting) it's around 7.029 RPS. The following calculus gives us the expected RPS:
 $$
 \huge
 {
- \frac{140.000\ RPS\ · 1.300\ +\ 1.000\ RPS\ · 18.700}{20.000} = 10.035
+ \frac{39.525\ RPS\ · 4.332\ +\ 7.029\ RPS\ · (20.000-4.332)}{20.000} = 14.067
 }
 $$
-> [!important]
-> Even though the used speeds are not empirical, they give a very aproxímate value.
+
+This totally confirms our hypothesis.
+
+So the real speed that it's limiting the system for the *numbered-tickets* version is 7.029 RPS, concluding this is not the bottleneck.
+
+> [!info]
+> Commands used to measure the used speeds used in the calculus:
+> - Double write benchmark:
+> ```bash
+> sudo docker run --rm --network host redis:latest redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 20000 -q --threads 8 --csv -r 1000000 EVAL "redis.call('SET', KEYS[1], '1'); redis.call('SADD', KEYS[2], KEYS[1])" 2 __rand_int__ target_set
+> ```
+> - Single read benchmark:
+> ```bash
+> sudo docker run --rm --network host redis:latest redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 20000 -q --threads 8 -r 1000000 --csv GET __rand_int__
+> ```
