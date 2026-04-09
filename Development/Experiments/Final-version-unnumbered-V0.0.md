@@ -1,6 +1,7 @@
 ---
 final-version: V0.0
 environment: AWS
+tickets-mode: unnumbered
 ---
 # Description
 
@@ -30,6 +31,10 @@ This final version has the following instances:
 #todo Indicate the machine chosen for each instance (i.e. t3.micro, t2.micro)
 
 # Deploying
+
+#todo Talk about the AWS CLI installation and IAM configuration.
+#todo Document `terraform init` and `terraform apply`.
+#todo Talk about the [[final-versions/unnumbered/V0.0/aws/main.tf]] file.
 
 > [!info] Note
 > - `control-plane-node-1` is the **load balancer**
@@ -175,7 +180,6 @@ sudo docker run -d --name redis-sentinel --network host redis:latest sh -c \
 ## Deploy the Gateways
 
 For each gateway:
-
 ```bash
 # upload the nginx.conf file
 scp -i SD-task1-key-pair.pem nginx.conf ubuntu@<gateway-public-ip>:.
@@ -295,12 +299,12 @@ curl -i "http://44.193.24.57/buy?ticket_id=aws-production-004"
 
 # Benchmarks
 
-## benchmark:: Unnumbered tickets
+## benchmark:: Throughput
 
 The provided benchmarking file ([[benchmarks/benchmark_unnumbered_20000.txt]]) specifies making 20.000 requests, without any retry. This can be achieved with the following LUA script and the `wrk` tool used previously throughout this work.
 
 ```embed-bash
-PATH: "vault://final-versions/V0.0/benchmarks/sequential_benchmark.lua"
+PATH: "vault://final-versions/unnumbered/V0.0/benchmarks/sequential_benchmark.lua"
 ```
 
 ```bash

@@ -14,5 +14,6 @@ software-testing/redisSharding-gatewayCluster-loadBalancer/redis-server/*/append
 ## redis
 *.rdb
 ## terraform
+*.backup
 *.tfstate
 *.hcl
