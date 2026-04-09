@@ -46,15 +46,15 @@ $ aws ec2 describe-instances --query "Reservations[*].Instances[*].[Tags[?Key=='
 --------------------------------------------
 |             DescribeInstances            |
 +-----------------------+------------------+
-|  control-plane-node-2 |  98.91.187.48    |
-|  redis-replica-a2     |  98.92.240.196   |
-|  redis-replica-b1     |  54.87.222.252   |
-|  redis-replica-a1     |  44.201.47.88    |
-|  control-plane-node-3 |  32.192.226.94   |
-|  redis-replica-b2     |  32.192.177.151  |
-|  redis-master-a       |  44.200.157.238  |
-|  redis-master-b       |  3.236.158.52    |
-|  control-plane-node-1 |  44.193.24.57    |
+|  control-plane-node-2 |  3.235.158.112   |
+|  redis-replica-a2     |  44.212.51.254   |
+|  redis-replica-b1     |  44.197.174.164  |
+|  redis-replica-a1     |  44.203.15.128   |
+|  control-plane-node-3 |  3.239.51.247    |
+|  redis-replica-b2     |  44.222.95.90    |
+|  redis-master-a       |  44.200.151.156  |
+|  redis-master-b       |  44.222.154.80   |
+|  control-plane-node-1 |  44.200.158.49   |
 +-----------------------+------------------+
 ```
 
@@ -336,13 +336,13 @@ sudo docker run --rm     --network host  redis:latest    redis-benchmark -h 127.
 "fcall buy_ticket 2 purchased_tracking_ids tickets-counter __rand_int__","1078.66","4.606","0.048","5.775","6.167","6.423","11.095"
 ```
 
-![[final-versions/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
+![[final-versions/unnumbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
 ```csvtable
 columns:
 - test
 - rps
 - p99_latency_ms	
-source: [[final-versions/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
+source: [[final-versions/unnumbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
 ```
 Those are awful RPS and latency values considering this test was run in the *loopback* network. This shows the real bottleneck of the system, thus, it could be proved by increasing the number of shards, or the speed of the storage media.
 

@@ -143,4 +143,46 @@ Again, this is the expected behavior.
 # Benchmarks
 ## benchmark:: Throughput
 
-#todo
+The LUA script [[final-versions/numbered/V0.0/benchmarks/file_benchmark.lua]] parses the [[benchmarks/benchmark_numbered_60000.txt|benchmark_numbered_60000.txt]] file to benchmark its requests.
+
+```embed-bash
+PATH: "vault://final-versions/numbered/V0.0/benchmarks/file_benchmark.lua"
+```
+
+```bash
+sudo docker run --rm \
+  --network host \
+  -v $(pwd)/benchmark_numbered_60000.txt:/benchmark_data.txt:ro \
+  -v $(pwd)/file_benchmark.lua:/benchmark.lua:ro \
+  williamyeh/wrk \
+  -t1 -c100 -d60s -s /benchmark.lua http://44.193.24.57
+  
+# output
+Running 1m test @ http://44.193.24.57
+  1 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   128.40ms   48.91ms 752.35ms   91.70%
+    Req/Sec   801.28    231.92     1.30k    79.62%
+  25913 requests in 1.00m, 5.86MB read
+  Non-2xx or 3xx responses: 5996
+Requests/sec:    431.88
+Transfer/sec:    100.00KB
+```
+
+A local `redis-benchmark` has been executed to see Redis real speed isolated from the system:
+
+```bash
+sudo docker run --rm --network host redis:latest redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 60000 -q --threads 8 -r 20000 --csv fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__
+"test","rps","avg_latency_ms","min_latency_ms","p50_latency_ms","p95_latency_ms","p99_latency_ms","max_latency_ms"
+"fcall buy_ticket_bench 2 purchased_tracking_ids seat-__rand_int__ client-__rand_int__","13289.04","6.695","1.672","5.719","9.343","11.279","24.479"
+```
+
+![[final-versions/numbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
+```csvtable
+columns:
+- test
+- rps
+- p99_latency_ms	
+source: [[final-versions/numbered/V0.0/benchmarks/rdis-master-a-localhost-benchmark.csv]]
+```
+
