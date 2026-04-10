@@ -316,7 +316,7 @@ resource "aws_lb_target_group_attachment" "rabbitmq_secondary_attachment" {
 
 # EC2 Instances for Workers
 resource "aws_instance" "worker_nodes" {
-  count                  = 2
+  count                  = 3
   ami                    = var.ec2_ami_id
   instance_type          = var.ec2_instance_type
   subnet_id              = aws_subnet.custom_subnet.id
@@ -341,7 +341,7 @@ resource "aws_instance" "worker_nodes" {
 
 # EC2 Instances for Workers with multiple ticket worker services
 resource "aws_instance" "multiworker_nodes" {
-  count                  = 1
+  count                  = 0
   ami                    = var.ec2_ami_id
   instance_type          = var.ec2_multiworker_instance_type
   subnet_id              = aws_subnet.custom_subnet.id
