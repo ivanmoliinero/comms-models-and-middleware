@@ -274,6 +274,13 @@ PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-result-vus-3500.txt"
 LINES: "168-203"
 ```
 
+> [!important]
+> The reason why this happens is by the socket's queue overflowing. This can be proved by executing the following command on the *load balancer*:
+> ```bash
+> watch -d -n 1 'netstat -s | grep -E "overflowed|dropped"'
+> ```
+> This command will show how many times the queue overflows. If executed during the showed test (with 3500 vus), you will see the number increasing incredibly fast.
+
 The system clearly exhausted, so let's execute another benchmark with `vus: 1000`.
 
 [benchmark:: Throughput] [vus:: 1000] [workers: 2 per gateway]
