@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Set variables injected by Terraform.
+RABBITMQ_HOST="${rabbitmq_host}"
+REDIS_SENTINELS="${redis_sentinels}"
+WORKER_COUNT="${worker_count}"
+
+# Update the system packages
+yum update -y
+
+# Install Git and Python3 Pip
+yum install git python3-pip -y
+
+REPO_URL="https://github.com/ivanmoliinero/comms-models-and-middleware.git"
+TARGET_DIR="/home/ec2-user/comms-models-and-middleware"
+
+# Clone the repository into the ec2-user home directory
+cd /home/ec2-user
+git clone $REPO_URL
+
+cd $TARGET_DIR
+git checkout final/indirect-unnumbered
+
+# Ensure ec2-user owns the cloned repository
+chown -R ec2-user:ec2-user $TARGET_DIR
+
+# Virtual Python env + packages installation executed as ec2-user
+su - ec2-user -c "python3 -m venv /home/ec2-user/venv"
+su - ec2-user -c "/home/ec2-user/venv/bin/pip install --upgrade pip"
+su - ec2-user -c "/home/ec2-user/venv/bin/pip install -r $TARGET_DIR/requirements.txt"
+
+# Create the systemd template service unit file.
+# The '@' symbol defines it as a template that can spawn multiple isolated instances.
+cat << EOF > /etc/systemd/system/ticket-worker@.service
+[Unit]
+# %i will be replaced dynamically by the instance number (e.g., Instance 1, Instance 2)
+Description=Python Ticketing Worker Service Instance %i
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=$TARGET_DIR
+ExecStart=/home/ec2-user/venv/bin/python3 -u /home/ec2-user/comms-models-and-middleware/server_side/worker.py --rabbitmq-host $RABBITMQ_HOST --redis-sentinels $REDIS_SENTINELS
+# Automatically restart the service if it crashes or exits
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload the systemd manager configuration to detect the new template
+systemctl daemon-reload
+
+# Loop dynamically to enable and start the specified amount of worker processes
+for i in $(seq 1 $WORKER_COUNT); do
+  systemctl enable ticket-worker@$i.service
+  systemctl start ticket-worker@$i.service
+done
+
+echo "Successfully spawned $WORKER_COUNT worker instances."

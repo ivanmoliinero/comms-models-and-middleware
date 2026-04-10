@@ -29,6 +29,12 @@ variable "ec2_instance_type" {
   default     = "t3.micro"
 }
 
+variable "ec2_multiworker_instance_type" {
+  type        = string
+  description = "The EC2 instance type (e.g., t2.micro, t3.small) for machine with more than a worker."
+  default     = "t3.small"
+}
+
 # The RabbitMQ nodes will have more resources than client or worker nodes who rely totally on them.
 variable "ec2_rabbit_mq_node" {
   type        = string
@@ -41,4 +47,10 @@ variable "ec2_redis_node" {
   type        = string
   description = "The EC2 instance type for RabbitMQ servers."
   default     = "t3.small"
+}
+
+variable "workers_per_instance" {
+  type        = number
+  description = "The number of workers for each multiworker instance."
+  default     = 2
 }
