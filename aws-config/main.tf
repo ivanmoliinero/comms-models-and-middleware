@@ -81,7 +81,6 @@ resource "aws_security_group" "custom_sg" {
 
   # RabbitMQ AMQP port for clients and workers
   # WARNING: Due to limitations given by specs and AWS lab, clients will be outside the VPC.
-  # TODO: Change to 5671 encrypted protocol + restrict permissions on clients.
   ingress {
     description = "AMQP protocol"
     from_port   = 5672
