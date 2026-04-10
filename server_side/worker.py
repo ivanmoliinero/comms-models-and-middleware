@@ -114,24 +114,40 @@ def process_message(ch, method, properties, body):
     global client  # Required to invoke the wait command on the active connection
 
     try:
-        # The sentinel-managed client automatically discovers the new master.
-        # Added the 5th key ('failed_counter') to match the updated Lua script logic.
-        result = auto_incr(
+        # Acquire an exclusive connection from the pool to guarantee sequence.
+        # transaction=False ensures we do not wrap this in a MULTI/EXEC block,
+        # which allows WAIT to function properly immediately after the script.
+        pipeline = client.pipeline(transaction=False)
+
+        # Execute the Lua script through the pipeline object
+        auto_incr(
             keys=[seat_key, COUNTER_VAR, START_TIME_KEY, END_TIME_KEY,
                   'failed_counter'],
-            args=[client_id, MAX_TICKETS])
+            args=[client_id, MAX_TICKETS],
+            client=pipeline
+        )
 
-        # Block the client until at least 1 replica acknowledges the write.
-        # The timeout is defined in milliseconds (1000ms = 1 second).
-        replicas_acknowledged = client.wait(1, 1000)
+        # Queue the WAIT command on the exact same physical TCP connection
+        pipeline.wait(1, 1000)
+
+        # Execute both commands sequentially and retrieve their respective outputs
+        results = pipeline.execute()
+
+        # results[0] corresponds to the Lua script return value (1 or 0)
+        # results[1] corresponds to the WAIT command return value
+        script_result = results[0]
+        replicas_acknowledged = results[1]
 
         # Validate if the synchronous replication was successful
         if replicas_acknowledged >= 1:
-            # Explicit manual ACK when Redis operation is successfully replicated,
-            # regardless of whether the seat was acquired or already taken.
+            if script_result == 1:
+                print(
+                    f"[*] SUCCESS: Seat {seat_id} reserved for Client {client_id}.")
+            else:
+                print(f"[*] REJECTED: Seat {seat_id} was already taken.")
+
             ch.basic_ack(delivery_tag=method.delivery_tag)
         else:
-            # If 0 replicas acknowledged, treat it as a consistency failure
             print(
                 "[!] WAIT command timed out: 0 replicas acknowledged the write.")
             print("[*] NACKing message to ensure strict data consistency...")
