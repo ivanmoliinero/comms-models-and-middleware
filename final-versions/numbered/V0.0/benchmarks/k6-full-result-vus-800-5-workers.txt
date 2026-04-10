@@ -1,0 +1,71 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /k6_benchmark.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 800 max VUs, 10m30s max duration (incl. graceful stop):
+              * exact_requests: 25997 iterations shared among 800 VUs (maxDuration: 10m0s, gracefulStop: 30s)
+
+
+running (00m00.8s), 800/800 VUs, 3466 complete and 0 interrupted iterations
+exact_requests   [  13% ] 800 VUs  00m00.8s/10m0s  03466/25997 shared iters
+
+running (00m01.8s), 800/800 VUs, 8285 complete and 0 interrupted iterations
+exact_requests   [  32% ] 800 VUs  00m01.8s/10m0s  08285/25997 shared iters
+
+running (00m02.8s), 800/800 VUs, 12927 complete and 0 interrupted iterations
+exact_requests   [  50% ] 800 VUs  00m02.8s/10m0s  12927/25997 shared iters
+
+running (00m03.8s), 800/800 VUs, 16808 complete and 0 interrupted iterations
+exact_requests   [  65% ] 800 VUs  00m03.8s/10m0s  16808/25997 shared iters
+
+running (00m04.8s), 800/800 VUs, 21248 complete and 0 interrupted iterations
+exact_requests   [  82% ] 800 VUs  00m04.8s/10m0s  21248/25997 shared iters
+
+running (00m05.8s), 800/800 VUs, 24704 complete and 0 interrupted iterations
+exact_requests   [  95% ] 800 VUs  00m05.8s/10m0s  24704/25997 shared iters
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 103988 15381.568283/s
+    checks_succeeded...: 25.00% 25997 out of 103988
+    checks_failed......: 75.00% 77991 out of 103988
+
+    ✗ Success (200 OK)
+      ↳  76% — ✓ 20000 / ✗ 5997
+    ✗ Duplicate ID (409 Conflict)
+      ↳  0% — ✓ 0 / ✗ 25997
+    ✗ Sold Out (410 Gone)
+      ↳  23% — ✓ 5997 / ✗ 20000
+    ✗ Gateway/DB Error (500+)
+      ↳  0% — ✓ 0 / ✗ 25997
+
+    HTTP
+    http_req_duration..............: avg=155.05ms min=90.61ms med=146.77ms max=703.65ms p(90)=197.29ms p(95)=223.92ms
+      { expected_response:true }...: avg=164.03ms min=99.24ms med=154.41ms max=703.65ms p(90)=205.12ms p(95)=231.57ms
+    http_req_failed................: 25.45% 6828 out of 26828
+    http_reqs......................: 26828  3968.3109/s
+
+    EXECUTION
+    iteration_duration.............: avg=183.45ms min=90.89ms med=151.27ms max=1.59s    p(90)=214.25ms p(95)=263.01ms
+    iterations.....................: 25997  3845.392071/s
+    vus............................: 800    min=800           max=800
+    vus_max........................: 800    min=800           max=800
+
+    NETWORK
+    data_received..................: 6.4 MB 954 kB/s
+    data_sent......................: 2.8 MB 417 kB/s
+
+
+
+
+running (00m06.8s), 000/800 VUs, 25997 complete and 0 interrupted iterations
+exact_requests ✓ [ 100% ] 800 VUs  00m06.8s/10m0s  25997/25997 shared iters

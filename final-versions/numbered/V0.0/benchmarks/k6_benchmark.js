@@ -1,6 +1,6 @@
 import http from 'k6/http';
 import { SharedArray } from 'k6/data';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 import { scenario } from 'k6/execution';
 
 // 1. Memory-Efficient File Parsing
@@ -25,23 +25,34 @@ export const options = {
   scenarios: {
     exact_requests: {
       executor: 'shared-iterations',
-      vus: 800,                 // concurrent network streams
+      vus: 1200,                  // concurrent network streams
       iterations: data.length,   // Exactly 60,000 round-trips
-      maxDuration: '10m',        // Failsafe timeout (will exit early upon completion)
+      maxDuration: '10m',        // Failsafe timeout
     },
   },
 };
 
 export default function () {
   const item = data[scenario.iterationInTest];
-  const url = `http://44.215.107.90/buy?ticket_id=${item.client_id}&seat_id=${item.seat_id}`;
+  const url = `http://44.201.10.142/buy?ticket_id=${item.client_id}&seat_id=${item.seat_id}`;
   
-  // 2. Synchronous Blocking Execution
-  // The VU will wait here until the Gateway returns the payload.
-  const res = http.get(url);
+  let res;
+  let retries = 0;
+  const MAX_RETRIES = 3;
+
+  // 2. Synchronous Blocking Execution with Retry Logic
+  while (retries < MAX_RETRIES) {
+    res = http.get(url, { tags: { name: 'BuyEndpoint' } });
+    
+    if (res.status >= 500) {
+      retries++;
+      sleep(0.5); // 500ms backoff to allow the network to recover
+    } else {
+      break;
+    }
+  }
   
   // 3. Explicit Response Verification
-  // This proves the response was fully received and evaluated.
   check(res, {
     'Success (200 OK)': (r) => r.status === 200,
     'Duplicate ID (409 Conflict)': (r) => r.status === 409,

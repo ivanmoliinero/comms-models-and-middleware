@@ -46,15 +46,15 @@ $ aws ec2 describe-instances --query "Reservations[*].Instances[*].[Tags[?Key=='
 --------------------------------------------
 |             DescribeInstances            |
 +-----------------------+------------------+
-|  control-plane-node-2 |  13.218.159.191  |
-|  redis-replica-a2     |  18.208.205.193  |
-|  redis-replica-b1     |  3.235.15.47     |
-|  redis-replica-a1     |  44.199.207.251  |
-|  control-plane-node-3 |  44.193.3.109    |
-|  redis-replica-b2     |  44.222.144.9    |
-|  redis-master-a       |  32.195.68.240   |
-|  redis-master-b       |  100.54.37.0     |
-|  control-plane-node-1 |  44.215.107.90   |
+|  control-plane-node-2 |  98.81.107.240   |
+|  redis-replica-a2     |  3.238.79.71     |
+|  redis-replica-b1     |  13.218.189.199  |
+|  redis-replica-a1     |  44.201.21.148   |
+|  control-plane-node-3 |  3.236.127.11    |
+|  redis-replica-b2     |  44.211.96.146   |
+|  redis-master-a       |  3.224.114.228   |
+|  redis-master-b       |  3.239.40.214    |
+|  control-plane-node-1 |  44.201.10.142   |
 +-----------------------+------------------+
 ```
 

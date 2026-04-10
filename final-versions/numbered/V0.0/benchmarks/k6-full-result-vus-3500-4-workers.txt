@@ -1,0 +1,101 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /k6_benchmark.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 1200 max VUs, 10m30s max duration (incl. graceful stop):
+              * exact_requests: 25997 iterations shared among 1200 VUs (maxDuration: 10m0s, gracefulStop: 30s)
+
+
+running (00m00.8s), 1200/1200 VUs, 3556 complete and 0 interrupted iterations
+exact_requests   [  14% ] 1200 VUs  00m00.8s/10m0s  03560/25997 shared iters
+
+running (00m01.8s), 1200/1200 VUs, 9923 complete and 0 interrupted iterations
+exact_requests   [  38% ] 1200 VUs  00m01.8s/10m0s  09923/25997 shared iters
+
+running (00m02.8s), 1200/1200 VUs, 15358 complete and 0 interrupted iterations
+exact_requests   [  59% ] 1200 VUs  00m02.8s/10m0s  15358/25997 shared iters
+
+running (00m03.8s), 1200/1200 VUs, 21371 complete and 0 interrupted iterations
+exact_requests   [  82% ] 1200 VUs  00m03.8s/10m0s  21371/25997 shared iters
+
+running (00m04.8s), 0400/1200 VUs, 25597 complete and 0 interrupted iterations
+exact_requests   [  98% ] 1200 VUs  00m04.8s/10m0s  25597/25997 shared iters
+
+running (00m05.8s), 0232/1200 VUs, 25765 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m05.8s/10m0s  25765/25997 shared iters
+
+running (00m06.8s), 0201/1200 VUs, 25796 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m06.8s/10m0s  25796/25997 shared iters
+
+running (00m07.8s), 0201/1200 VUs, 25796 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m07.8s/10m0s  25796/25997 shared iters
+
+running (00m08.8s), 0201/1200 VUs, 25796 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m08.8s/10m0s  25796/25997 shared iters
+
+running (00m09.8s), 0201/1200 VUs, 25796 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m09.8s/10m0s  25796/25997 shared iters
+
+running (00m10.8s), 0201/1200 VUs, 25796 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m10.8s/10m0s  25796/25997 shared iters
+
+running (00m11.8s), 0201/1200 VUs, 25796 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m11.8s/10m0s  25796/25997 shared iters
+
+running (00m12.8s), 0201/1200 VUs, 25796 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m12.8s/10m0s  25796/25997 shared iters
+
+running (00m13.8s), 0201/1200 VUs, 25796 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m13.8s/10m0s  25796/25997 shared iters
+
+running (00m14.8s), 0201/1200 VUs, 25796 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m14.8s/10m0s  25796/25997 shared iters
+
+running (00m15.8s), 0201/1200 VUs, 25796 complete and 0 interrupted iterations
+exact_requests   [  99% ] 1200 VUs  00m15.8s/10m0s  25796/25997 shared iters
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 103184 6442.830382/s
+    checks_succeeded...: 25.00% 25796 out of 103184
+    checks_failed......: 75.00% 77388 out of 103184
+
+    ✗ Success (200 OK)
+      ↳  76% — ✓ 19782 / ✗ 6014
+    ✗ Duplicate ID (409 Conflict)
+      ↳  0% — ✓ 0 / ✗ 25796
+    ✗ Sold Out (410 Gone)
+      ↳  23% — ✓ 5997 / ✗ 19799
+    ✗ Gateway/DB Error (500+)
+      ↳  0% — ✓ 17 / ✗ 25779
+
+    HTTP
+    http_req_duration..............: avg=165.54ms min=90.56ms med=121.86ms max=1.8s  p(90)=166.65ms p(95)=430.73ms
+      { expected_response:true }...: avg=156.18ms min=98.68ms med=123.66ms max=1.8s  p(90)=165.75ms p(95)=185.29ms
+    http_req_failed................: 27.48% 7498 out of 27280
+    http_reqs......................: 27280  1703.368864/s
+
+    EXECUTION
+    iteration_duration.............: avg=200.27ms min=90.89ms med=123.47ms max=3.46s p(90)=182.11ms p(95)=734.56ms
+    iterations.....................: 25796  1610.707596/s
+    vus............................: 201    min=201           max=1200
+    vus_max........................: 1200   min=1200          max=1200
+
+    NETWORK
+    data_received..................: 6.6 MB 413 kB/s
+    data_sent......................: 2.9 MB 180 kB/s
+
+
+
+
+running (00m16.1s), 0000/1200 VUs, 25796 complete and 201 interrupted iterations
+exact_requests ✗ [  99% ] 1200 VUs  00m16.0s/10m0s  25832/25997 shared iters

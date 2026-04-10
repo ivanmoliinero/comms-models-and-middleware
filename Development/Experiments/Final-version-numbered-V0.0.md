@@ -58,6 +58,10 @@ return 0
 We have now another parameter in each request indicating the `seat_id`, so gateways must be modified to handle this. Additionally, we must change the way we chose which shard to send the `buy_ticket` operation since we now know deterministically where the ticket will be found (as described in [[#Logical sharding]]) (if it is yet available).
 
 # Deployment
+
+## Boot the Redis replicas
+Same as [[Development/Experiments/Final-version-unnumbered-V0.0#Boot the Redis replicas|Final-version-unnumbered-V0.0]].
+
 ## Redis LUA scripts update
 
 Execute the following in each *redis-master*:
@@ -116,12 +120,12 @@ end
 
 ### Shard A (redis-master-a)
 ```bash
-sudo docker exec -i redis-master redis-cli -x EVAL "for i=2, 20000, 2 do redis.call('SET', 'seat-'..i, '1') end" 0
+sudo docker exec redis-master redis-cli -x EVAL "for i=2, 20000, 2 do redis.call('SET', 'seat-'..i, '1') end" 0
 ```
 
 ### Shard B (redis-master-b)
 ```bash
-sudo docker exec -i redis-master redis-cli -x EVAL "for i=1, 19999, 2 do redis.call('SET', 'seat-'..i, '1') end" 0
+sudo docker exec redis-master redis-cli -x EVAL "for i=1, 19999, 2 do redis.call('SET', 'seat-'..i, '1') end" 0
 ```
 
 ## Deploy the Gateways
@@ -167,13 +171,16 @@ Again, this is the expected behavior.
 
 Locally, run the following from the path where [[final-versions/numbered/V0.0/benchmarks/k6_benchmark.js]] and [[benchmarks/benchmark_numbered_60000.txt|benchmark_numbered_60000.txt]] reside.
 
+[benchmark:: Throughput] [vus:: 100] [workers: 2 per gateway]
 ```bash
 sudo docker run --rm \
   --network host \
   -v $(pwd)/benchmark_numbered_60000.txt:/benchmark_data.txt:ro \
   -v $(pwd)/k6_benchmark.js:/k6_benchmark.js:ro \
   grafana/k6 run /k6_benchmark.js
-  
+```
+
+```bash
   # output
     █ TOTAL RESULTS 
 
@@ -274,7 +281,14 @@ The system clearly exhausted, so let's execute another benchmark with `vus: 1000
 PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-full-result-vis-1000.txt"
 ```
 
-Finally, a good throughput of **2564 RPS**. But let's thoroughly analyse all the system with real time data to find the bottleneck.
+Maybe still a bit exhausted:
+
+[benchmark:: Throughput] [vus:: 800] [workers: 2 per gateway]
+```embed-bash
+PATH: "vault://final-versions/numbered/V0.0/benchmarks/k6-full-result-vus-800-4-workers.txt"
+```
+
+Finally, a good throughput of **4023 RPS**. But let's thoroughly analyse all the system with real time data to find the bottleneck.
 #todo
 
 ## benchmark:: 1 Worker per Gateway
