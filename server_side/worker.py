@@ -16,6 +16,7 @@ lua_script = '''
 -- KEYS[2] = counter_key
 -- KEYS[3] = start_time_key
 -- KEYS[4] = end_time_key
+-- KEYS[5] = failed_counter_key
 -- ARGV[1] = client_id
 -- ARGV[2] = max_value
 
@@ -43,6 +44,8 @@ if seat_assigned == 1 then
     
     return 1 -- Success
 else
+    -- Seat already taken, increment the failed attempts counter
+    redis.call('INCR', KEYS[5])
     return 0 -- Failed: Seat already taken
 end
 '''
@@ -91,7 +94,8 @@ auto_incr: redis.commands.core.Script
 def process_message(ch, method, properties, body):
     """
     Callback function to process incoming messages.
-    Parses the BUY command and executes the Lua script for atomic reservation.
+    Parses the BUY command, executes the Lua script for atomic reservation,
+    and ensures synchronous replication to at least one Redis replica using WAIT.
     """
     message = body.decode('utf-8')
     print(f"[*] Received: {message}")
@@ -107,17 +111,32 @@ def process_message(ch, method, properties, body):
     seat_key = f"seat:{seat_id}"
 
     global auto_incr
+    global client  # Required to invoke the wait command on the active connection
+
     try:
-        # The sentinel-managed client automatically discovers the new master
-        # if a failover occurred before this call.
-        result = auto_incr(keys=[seat_key, COUNTER_VAR, START_TIME_KEY, END_TIME_KEY],
-                           args=[client_id, MAX_TICKETS])
+        # The sentinel-managed client automatically discovers the new master.
+        # Added the 5th key ('failed_counter') to match the updated Lua script logic.
+        result = auto_incr(
+            keys=[seat_key, COUNTER_VAR, START_TIME_KEY, END_TIME_KEY,
+                  'failed_counter'],
+            args=[client_id, MAX_TICKETS])
 
-        # TODO: how to process result.
+        # Block the client until at least 1 replica acknowledges the write.
+        # The timeout is defined in milliseconds (1000ms = 1 second).
+        replicas_acknowledged = client.wait(1, 1000)
 
-        # Explicit manual ACK when Redis operation is successfully completed,
-        # regardless of whether the seat was acquired or already taken.
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        # Validate if the synchronous replication was successful
+        if replicas_acknowledged >= 1:
+            # Explicit manual ACK when Redis operation is successfully replicated,
+            # regardless of whether the seat was acquired or already taken.
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+        else:
+            # If 0 replicas acknowledged, treat it as a consistency failure
+            print(
+                "[!] WAIT command timed out: 0 replicas acknowledged the write.")
+            print("[*] NACKing message to ensure strict data consistency...")
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+            time.sleep(1)
 
     except redis.exceptions.RedisError as e:
         # This catches ConnectionError, ReadOnlyError, and ResponseError (NOQUORUM).

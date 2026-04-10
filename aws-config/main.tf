@@ -316,7 +316,7 @@ resource "aws_lb_target_group_attachment" "rabbitmq_secondary_attachment" {
 
 # EC2 Instances for Workers
 resource "aws_instance" "worker_nodes" {
-  count                  = 3
+  count                  = 2
   ami                    = var.ec2_ami_id
   instance_type          = var.ec2_instance_type
   subnet_id              = aws_subnet.custom_subnet.id
@@ -339,29 +339,32 @@ resource "aws_instance" "worker_nodes" {
   }
 }
 
-# # 1 EC2 Instance for Publisher Clients
-# resource "aws_instance" "publisher_nodes" {
-#   count                  = 1
-#   ami                    = var.ec2_ami_id
-#   instance_type          = var.ec2_instance_type
-#   subnet_id              = aws_subnet.custom_subnet.id
-#   vpc_security_group_ids = [aws_security_group.custom_sg.id]
-#
-#   # Prefab key of labs
-#   key_name               = "vockey"
-#
-#   # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
-#   depends_on = [aws_instance.rabbitmq_primary]
-#
-#   user_data = templatefile("client_setup.tftpl", {
-#     rabbitmq_host = aws_instance.rabbitmq_primary[0].private_ip
-#   })
-#
-#   tags = {
-#     Name = "task1-Publisher-Client-${count.index + 1}"
-#     Role = "Publisher"
-#   }
-# }
+# EC2 Instances for Workers with multiple ticket worker services
+resource "aws_instance" "multiworker_nodes" {
+  count                  = 1
+  ami                    = var.ec2_ami_id
+  instance_type          = var.ec2_multiworker_instance_type
+  subnet_id              = aws_subnet.custom_subnet.id
+  vpc_security_group_ids = [aws_security_group.custom_sg.id]
+
+  # Prefab key of labs
+  key_name               = "vockey"
+
+  # Establish dependency on rabbitmq nodes in order to retrieve private IPs inside VPC for communication.
+  depends_on = [aws_lb_listener.rabbitmq_listener, aws_instance.redis_primary, aws_instance.rabbitmq_nodes, aws_instance.redis_secondary]
+
+  user_data = templatefile("multiworker_setup.tftpl", {
+    rabbitmq_host   = aws_lb.rabbitmq_nlb.dns_name,
+    redis_sentinels = join(",", concat([aws_instance.redis_primary[0].private_ip], aws_instance.redis_secondary[*].private_ip)),
+    # Inject the amount of workers to be spawned per EC2 instance
+    worker_count    = var.workers_per_instance
+  })
+
+  tags = {
+    Name = "task1-Multi-Worker-Node-${count.index + 1}"
+    Role = "Worker"
+  }
+}
 
 # Output the Public IPs for the RabbitMQ Management UI
 output "rabbitmq_main_node_management_url" {

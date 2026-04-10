@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # Set variables injected by Terraform.
-# RABBITMQ_HOST expects a single IP or an NLB DNS.
-# REDIS_SENTINELS expects a comma-separated list of IPs (e.g., "10.0.0.1,10.0.0.2,10.0.0.3").
 RABBITMQ_HOST="${rabbitmq_host}"
 REDIS_SENTINELS="${redis_sentinels}"
+WORKER_COUNT="${worker_count}"
 
 # Update the system packages
 yum update -y
@@ -20,21 +19,22 @@ cd /home/ec2-user
 git clone $REPO_URL
 
 cd $TARGET_DIR
-git checkout final/indirect-numbered
+git checkout final/indirect-unnumbered
 
 # Ensure ec2-user owns the cloned repository
 chown -R ec2-user:ec2-user $TARGET_DIR
 
 # Virtual Python env + packages installation executed as ec2-user
-# This prevents permission denied errors when the systemd service runs as ec2-user
 su - ec2-user -c "python3 -m venv /home/ec2-user/venv"
 su - ec2-user -c "/home/ec2-user/venv/bin/pip install --upgrade pip"
 su - ec2-user -c "/home/ec2-user/venv/bin/pip install -r $TARGET_DIR/requirements.txt"
 
-# Create the systemd service unit file
-cat << EOF > /etc/systemd/system/ticket-worker.service
+# Create the systemd template service unit file.
+# The '@' symbol defines it as a template that can spawn multiple isolated instances.
+cat << EOF > /etc/systemd/system/ticket-worker@.service
 [Unit]
-Description=Python Ticketing Worker Service
+# %i will be replaced dynamically by the instance number (e.g., Instance 1, Instance 2)
+Description=Python Ticketing Worker Service Instance %i
 After=network.target
 
 [Service]
@@ -50,11 +50,13 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-# Reload the systemd manager configuration
+# Reload the systemd manager configuration to detect the new template
 systemctl daemon-reload
 
-# Enable the service to start automatically on system boot
-systemctl enable ticket-worker.service
+# Loop dynamically to enable and start the specified amount of worker processes
+for i in $(seq 1 $WORKER_COUNT); do
+  systemctl enable ticket-worker@$i.service
+  systemctl start ticket-worker@$i.service
+done
 
-# Start the service immediately
-systemctl start ticket-worker.service
+echo "Successfully spawned $WORKER_COUNT worker instances."
