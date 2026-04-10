@@ -45,7 +45,8 @@ def calculate_benchmark_time():
     if not start_time_str or not end_time_str:
         print("Error: The benchmark timestamps are missing in Redis.")
         print(
-            "Ensure the worker script has processed the first and last messages.")
+            "Ensure the worker script has processed the first and last "
+            "messages.")
         return
 
     # Convert the string timestamps to floating-point numbers
@@ -69,7 +70,8 @@ def calculate_benchmark_time():
     client.set(COUNTER_KEY, 0)
 
     print(
-        "Variables 'start_time', 'end_time', and 'ticket_counter' have been reset to 0.")
+        "Variables 'start_time', 'end_time', and 'ticket_counter' have been "
+        "reset to 0.")
 
 
 if __name__ == '__main__':

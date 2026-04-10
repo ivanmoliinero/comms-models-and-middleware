@@ -53,7 +53,8 @@ START_TIME_KEY='start_time'
 END_TIME_KEY='end_time'
 
 # Initialize the argument parser
-parser = argparse.ArgumentParser(description="RabbitMQ and Redis Sentinel connection script.")
+parser = argparse.ArgumentParser(description="RabbitMQ and Redis Sentinel "
+                                             "connection script.")
 
 parser.add_argument(
     '--rabbitmq-host',
@@ -113,7 +114,8 @@ def process_message(ch, method, properties, body):
         # Queue the WAIT command on the exact same physical TCP connection
         pipeline.wait(1, 1000)
 
-        # Execute both commands sequentially and retrieve their respective outputs
+        # Execute both commands sequentially and retrieve their respective
+        # outputs.
         results = pipeline.execute()
 
         # results[0] corresponds to the Lua script return value
@@ -123,17 +125,20 @@ def process_message(ch, method, properties, body):
 
         # Validate if the synchronous replication was successful
         if replicas_acknowledged >= 1:
-            # Explicit manual ACK when Redis operation is successfully replicated
+            # Explicit manual ACK when Redis operation is successfully
+            # replicated
             ch.basic_ack(delivery_tag=method.delivery_tag)
         else:
             # If 0 replicas acknowledged, treat it as a consistency failure
-            print("[!] WAIT command timed out: 0 replicas acknowledged the write.")
+            print("[!] WAIT command timed out: 0 replicas acknowledged the "
+                  "write.")
             print("[*] NACKing message to ensure strict data consistency...")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
             time.sleep(1)
 
     except redis.exceptions.RedisError as e:
-        # This catches ConnectionError, ReadOnlyError, and other execution failures.
+        # This catches ConnectionError, ReadOnlyError, and other execution
+        # failures.
         print(f"[!] Redis execution failed: {e}")
         print("[*] NACKing message to prevent data loss. Requeueing...")
 
@@ -151,10 +156,12 @@ def connect_to_redis_sentinel(sentinel_list, password, delay=5):
                   f"at {sentinel_list}...")
 
             # Initialize the Sentinel object
-            # Provide the password to authenticate with the sentinels themselves
+            # Provide the password to authenticate with the sentinels
+            # themselves
             sentinel_manager = Sentinel(sentinel_list)
 
-            # master_for returns a dynamic client connected to the current master
+            # master_for returns a dynamic client connected to the current
+            # master
             r_client = sentinel_manager.master_for(
                 'mymaster',
                 password=password,
@@ -163,7 +170,8 @@ def connect_to_redis_sentinel(sentinel_list, password, delay=5):
 
             # Ping verifies the connection to the actual Master is established
             if r_client.ping():
-                print("[*] Successfully connected to Redis Master via Sentinel.")
+                print("[*] Successfully connected to Redis Master via "
+                      "Sentinel.")
                 return r_client
 
         except (redis.exceptions.ConnectionError,
