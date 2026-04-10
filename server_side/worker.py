@@ -88,33 +88,43 @@ auto_incr: redis.commands.core.Script
 def process_message(ch, method, properties, body):
     """
     Callback function to process incoming messages.
-    Includes fail-safe logic for Redis partitions.
+    Ensures synchronous replication to at least one Redis replica using WAIT.
     """
     message = body.decode('utf-8')
     print(f"[*] Received: {message}")
 
     global auto_incr
+    global client  # Required to invoke the wait command on the active connection
+
     try:
-        # The sentinel-managed client automatically discovers the new master
-        # if a failover occurred before this call.
+        # Execute the Lua script atomically on the master
         result = auto_incr(keys=[COUNTER_VAR, START_TIME_KEY, END_TIME_KEY],
                            args=[MAX_TICKETS])
 
-        # Explicit manual ACK when Redis operation is successfully completed.
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        # Block the client until at least 1 replica acknowledges the write.
+        # The timeout is defined in milliseconds (e.g., 1000ms = 1 second).
+        replicas_acknowledged = client.wait(1, 1000)
+
+        # Validate if the synchronous replication was successful
+        if replicas_acknowledged >= 1:
+            # Explicit manual ACK when Redis operation is successfully replicated
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+        else:
+            # If 0 replicas acknowledged, treat it as a consistency failure
+            print(
+                "[!] WAIT command timed out: 0 replicas acknowledged the write.")
+            print("[*] NACKing message to ensure strict data consistency...")
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+            time.sleep(1)
 
     except redis.exceptions.RedisError as e:
-        # This catches ConnectionError, ReadOnlyError, and ResponseError (NOQUORUM).
+        # This catches ConnectionError, ReadOnlyError, and other execution failures.
         print(f"[!] Redis execution failed: {e}")
         print("[*] NACKing message to prevent data loss. Requeueing...")
 
         # NACK the message so RabbitMQ puts it back in the queue.
-        # It will be safely redelivered.
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-
-        # Brief pause to prevent a tight loop if the master is temporarily down
         time.sleep(1)
-
 
 def connect_to_redis_sentinel(sentinel_list, password, delay=5):
     """
@@ -122,7 +132,8 @@ def connect_to_redis_sentinel(sentinel_list, password, delay=5):
     """
     while True:
         try:
-            print(f"[*] Attempting to connect to Redis Sentinels at {sentinel_list}...")
+            print(f"[*] Attempting to connect to Redis Sentinels "
+                  f"at {sentinel_list}...")
 
             # Initialize the Sentinel object
             # Provide the password to authenticate with the sentinels themselves
@@ -140,15 +151,18 @@ def connect_to_redis_sentinel(sentinel_list, password, delay=5):
                 print("[*] Successfully connected to Redis Master via Sentinel.")
                 return r_client
 
-        except (redis.exceptions.ConnectionError, redis.sentinel.MasterNotFoundError) as e:
-            print(f"[!] Redis Sentinel connection failed: {e}. Retrying in {delay} seconds...")
+        except (redis.exceptions.ConnectionError,
+                redis.sentinel.MasterNotFoundError) as e:
+            print(f"[!] Redis Sentinel connection failed: {e}. Retrying "
+                  f"in {delay} seconds...")
             time.sleep(delay)
 
 
 def start_worker():
     """
     Initializes the Redis connection, then starts an infinite loop to maintain
-    the RabbitMQ connection. If RabbitMQ drops, it catches the error and reconnects.
+    the RabbitMQ connection. If RabbitMQ drops, it catches the error and
+    reconnects.
     """
     global client
     global auto_incr
