@@ -1,0 +1,95 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /k6_benchmark.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 800 max VUs, 10m30s max duration (incl. graceful stop):
+              * exact_requests: 99000 iterations shared among 800 VUs (maxDuration: 10m0s, gracefulStop: 30s)
+
+
+running (00m01.0s), 800/800 VUs, 869 complete and 0 interrupted iterations
+exact_requests   [   1% ] 800 VUs  00m01.0s/10m0s  00869/99000 shared iters
+
+running (00m02.0s), 800/800 VUs, 6547 complete and 0 interrupted iterations
+exact_requests   [   7% ] 800 VUs  00m02.0s/10m0s  06547/99000 shared iters
+
+running (00m03.0s), 800/800 VUs, 13177 complete and 0 interrupted iterations
+exact_requests   [  13% ] 800 VUs  00m03.0s/10m0s  13177/99000 shared iters
+
+running (00m04.0s), 800/800 VUs, 20048 complete and 0 interrupted iterations
+exact_requests   [  20% ] 800 VUs  00m04.0s/10m0s  20048/99000 shared iters
+
+running (00m05.0s), 800/800 VUs, 27489 complete and 0 interrupted iterations
+exact_requests   [  28% ] 800 VUs  00m05.0s/10m0s  27489/99000 shared iters
+
+running (00m06.0s), 800/800 VUs, 34749 complete and 0 interrupted iterations
+exact_requests   [  35% ] 800 VUs  00m06.0s/10m0s  34749/99000 shared iters
+
+running (00m07.0s), 800/800 VUs, 42138 complete and 0 interrupted iterations
+exact_requests   [  43% ] 800 VUs  00m07.0s/10m0s  42138/99000 shared iters
+
+running (00m08.0s), 800/800 VUs, 49495 complete and 0 interrupted iterations
+exact_requests   [  50% ] 800 VUs  00m08.0s/10m0s  49495/99000 shared iters
+
+running (00m09.0s), 800/800 VUs, 56933 complete and 0 interrupted iterations
+exact_requests   [  58% ] 800 VUs  00m09.0s/10m0s  56933/99000 shared iters
+
+running (00m10.0s), 800/800 VUs, 64464 complete and 0 interrupted iterations
+exact_requests   [  65% ] 800 VUs  00m10.0s/10m0s  64464/99000 shared iters
+
+running (00m11.0s), 800/800 VUs, 71934 complete and 0 interrupted iterations
+exact_requests   [  73% ] 800 VUs  00m11.0s/10m0s  71934/99000 shared iters
+
+running (00m12.0s), 800/800 VUs, 79432 complete and 0 interrupted iterations
+exact_requests   [  80% ] 800 VUs  00m12.0s/10m0s  79432/99000 shared iters
+
+running (00m13.0s), 800/800 VUs, 86891 complete and 0 interrupted iterations
+exact_requests   [  88% ] 800 VUs  00m13.0s/10m0s  86891/99000 shared iters
+
+running (00m14.0s), 800/800 VUs, 94308 complete and 0 interrupted iterations
+exact_requests   [  95% ] 800 VUs  00m14.0s/10m0s  94308/99000 shared iters
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 396000 27078.004462/s
+    checks_succeeded...: 25.00% 99000 out of 396000
+    checks_failed......: 75.00% 297000 out of 396000
+
+    ✗ Success (200 OK)
+      ↳  20% — ✓ 20000 / ✗ 79000
+    ✗ Duplicate ID (409 Conflict)
+      ↳  0% — ✓ 0 / ✗ 99000
+    ✗ Sold Out (410 Gone)
+      ↳  79% — ✓ 79000 / ✗ 20000
+    ✗ Gateway/DB Error (500+)
+      ↳  0% — ✓ 0 / ✗ 99000
+
+    HTTP
+    http_req_duration..............: avg=111.36ms min=89.99ms med=106.72ms max=1.38s p(90)=118.86ms p(95)=124.53ms
+      { expected_response:true }...: avg=123.98ms min=96.88ms med=113.51ms max=1.38s p(90)=125.41ms p(95)=134.17ms
+    http_req_failed................: 79.81% 79077 out of 99077
+    http_reqs......................: 99077  6774.766283/s
+
+    EXECUTION
+    iteration_duration.............: avg=116.91ms min=90.13ms med=107.08ms max=1.7s  p(90)=119.32ms p(95)=125.07ms
+    iterations.....................: 99000  6769.501116/s
+    vus............................: 800    min=800            max=800
+    vus_max........................: 800    min=800            max=800
+
+    NETWORK
+    data_received..................: 22 MB  1.5 MB/s
+    data_sent......................: 11 MB  717 kB/s
+
+
+
+
+running (00m14.6s), 000/800 VUs, 99000 complete and 0 interrupted iterations
+exact_requests ✓ [ 100% ] 800 VUs  00m14.6s/10m0s  99000/99000 shared iters

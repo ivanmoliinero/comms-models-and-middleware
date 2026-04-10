@@ -34,7 +34,7 @@ export const options = {
 export default function () {
   const item = data[scenario.iterationInTest];
   const ticketId = `${item.client_id}_${item.req_id}`;
-  const url = `http://44.215.107.90/buy?ticket_id=${ticketId}`;
+  const url = `http://44.201.10.142/buy?ticket_id=${ticketId}`;
   
   let res;
   let retries = 0;

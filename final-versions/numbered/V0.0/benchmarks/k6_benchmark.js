@@ -25,7 +25,7 @@ export const options = {
   scenarios: {
     exact_requests: {
       executor: 'shared-iterations',
-      vus: 1200,                  // concurrent network streams
+      vus: 800,                  // concurrent network streams
       iterations: data.length,   // Exactly 60,000 round-trips
       maxDuration: '10m',        // Failsafe timeout
     },

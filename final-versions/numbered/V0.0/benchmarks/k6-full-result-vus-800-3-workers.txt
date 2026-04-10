@@ -14,28 +14,25 @@
               * exact_requests: 25997 iterations shared among 800 VUs (maxDuration: 10m0s, gracefulStop: 30s)
 
 
-running (00m00.8s), 800/800 VUs, 2507 complete and 0 interrupted iterations
-exact_requests   [  10% ] 800 VUs  00m00.8s/10m0s  02515/25997 shared iters
+running (00m00.8s), 800/800 VUs, 1136 complete and 0 interrupted iterations
+exact_requests   [   4% ] 800 VUs  00m00.8s/10m0s  01136/25997 shared iters
 
-running (00m01.8s), 800/800 VUs, 7179 complete and 0 interrupted iterations
-exact_requests   [  28% ] 800 VUs  00m01.8s/10m0s  07179/25997 shared iters
+running (00m01.8s), 800/800 VUs, 7504 complete and 0 interrupted iterations
+exact_requests   [  29% ] 800 VUs  00m01.8s/10m0s  07504/25997 shared iters
 
-running (00m02.8s), 800/800 VUs, 12213 complete and 0 interrupted iterations
-exact_requests   [  47% ] 800 VUs  00m02.8s/10m0s  12213/25997 shared iters
+running (00m02.8s), 800/800 VUs, 14361 complete and 0 interrupted iterations
+exact_requests   [  55% ] 800 VUs  00m02.8s/10m0s  14361/25997 shared iters
 
-running (00m03.8s), 800/800 VUs, 16879 complete and 0 interrupted iterations
-exact_requests   [  65% ] 800 VUs  00m03.8s/10m0s  16879/25997 shared iters
+running (00m03.8s), 800/800 VUs, 20146 complete and 0 interrupted iterations
+exact_requests   [  77% ] 800 VUs  00m03.8s/10m0s  20146/25997 shared iters
 
-running (00m04.8s), 800/800 VUs, 21678 complete and 0 interrupted iterations
-exact_requests   [  83% ] 800 VUs  00m04.8s/10m0s  21678/25997 shared iters
-
-running (00m05.8s), 800/800 VUs, 24232 complete and 0 interrupted iterations
-exact_requests   [  93% ] 800 VUs  00m05.8s/10m0s  24232/25997 shared iters
+running (00m04.8s), 234/800 VUs, 25763 complete and 0 interrupted iterations
+exact_requests   [  99% ] 800 VUs  00m04.8s/10m0s  25763/25997 shared iters
 
 
   █ TOTAL RESULTS 
 
-    checks_total.......: 103988 16041.177439/s
+    checks_total.......: 103988 19353.260311/s
     checks_succeeded...: 25.00% 25997 out of 103988
     checks_failed......: 75.00% 77991 out of 103988
 
@@ -49,23 +46,23 @@ exact_requests   [  93% ] 800 VUs  00m05.8s/10m0s  24232/25997 shared iters
       ↳  0% — ✓ 0 / ✗ 25997
 
     HTTP
-    http_req_duration..............: avg=161.86ms min=91.7ms  med=139.23ms max=688.1ms p(90)=253.19ms p(95)=344.18ms
-      { expected_response:true }...: avg=165.79ms min=99.76ms med=142.12ms max=688.1ms p(90)=231.99ms p(95)=362.84ms
-    http_req_failed................: 25.29% 6772 out of 26772
-    http_reqs......................: 26772  4129.845774/s
+    http_req_duration..............: avg=126.48ms min=89.16ms  med=115.29ms max=867.35ms p(90)=142.43ms p(95)=163.28ms
+      { expected_response:true }...: avg=122.18ms min=100.41ms med=117.07ms max=680.03ms p(90)=140.68ms p(95)=155.01ms
+    http_req_failed................: 23.81% 6253 out of 26253
+    http_reqs......................: 26253  4885.95937/s
 
     EXECUTION
-    iteration_duration.............: avg=189.98ms min=92.14ms med=142.39ms max=2.23s   p(90)=284.69ms p(95)=391.03ms
-    iterations.....................: 25997  4010.29436/s
-    vus............................: 800    min=800           max=800
+    iteration_duration.............: avg=146.25ms min=89.27ms  med=115.75ms max=2.22s    p(90)=146.7ms  p(95)=176.44ms
+    iterations.....................: 25997  4838.315078/s
+    vus............................: 234    min=234           max=800
     vus_max........................: 800    min=800           max=800
 
     NETWORK
-    data_received..................: 6.4 MB 991 kB/s
-    data_sent......................: 2.8 MB 434 kB/s
+    data_received..................: 6.3 MB 1.2 MB/s
+    data_sent......................: 2.8 MB 513 kB/s
 
 
 
 
-running (00m06.5s), 000/800 VUs, 25997 complete and 0 interrupted iterations
-exact_requests ✓ [ 100% ] 800 VUs  00m06.5s/10m0s  25997/25997 shared iters
+running (00m05.4s), 000/800 VUs, 25997 complete and 0 interrupted iterations
+exact_requests ✓ [ 100% ] 800 VUs  00m05.4s/10m0s  25997/25997 shared iters

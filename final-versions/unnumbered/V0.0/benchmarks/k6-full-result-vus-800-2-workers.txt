@@ -1,0 +1,64 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /k6_benchmark.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 800 max VUs, 10m30s max duration (incl. graceful stop):
+              * exact_requests: 20000 iterations shared among 800 VUs (maxDuration: 10m0s, gracefulStop: 30s)
+
+
+running (00m00.9s), 800/800 VUs, 1230 complete and 0 interrupted iterations
+exact_requests   [   6% ] 800 VUs  00m00.9s/10m0s  01230/20000 shared iters
+
+running (00m01.9s), 800/800 VUs, 7090 complete and 0 interrupted iterations
+exact_requests   [  35% ] 800 VUs  00m01.8s/10m0s  07090/20000 shared iters
+
+running (00m02.9s), 800/800 VUs, 13856 complete and 0 interrupted iterations
+exact_requests   [  69% ] 800 VUs  00m02.9s/10m0s  13856/20000 shared iters
+
+running (00m03.9s), 007/800 VUs, 19993 complete and 0 interrupted iterations
+exact_requests   [ 100% ] 800 VUs  00m03.9s/10m0s  19993/20000 shared iters
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 80000  19039.269285/s
+    checks_succeeded...: 25.00% 20000 out of 80000
+    checks_failed......: 75.00% 60000 out of 80000
+
+    ✓ Success (200 OK)
+    ✗ Duplicate ID (409 Conflict)
+      ↳  0% — ✓ 0 / ✗ 20000
+    ✗ Sold Out (410 Gone)
+      ↳  0% — ✓ 0 / ✗ 20000
+    ✗ Gateway/DB Error (500+)
+      ↳  0% — ✓ 0 / ✗ 20000
+
+    HTTP
+    http_req_duration..............: avg=127.83ms min=89.5ms   med=116.04ms max=1.03s p(90)=127.54ms p(95)=140.64ms
+      { expected_response:true }...: avg=127.87ms min=100.52ms med=116.05ms max=1.03s p(90)=127.54ms p(95)=140.71ms
+    http_req_failed................: 0.11%  24 out of 20024
+    http_reqs......................: 20024  4765.529102/s
+
+    EXECUTION
+    iteration_duration.............: avg=143.79ms min=100.81ms med=116.4ms  max=1.35s p(90)=128.12ms p(95)=145.54ms
+    iterations.....................: 20000  4759.817321/s
+    vus............................: 7      min=7           max=800
+    vus_max........................: 800    min=800         max=800
+
+    NETWORK
+    data_received..................: 4.9 MB 1.2 MB/s
+    data_sent......................: 2.0 MB 467 kB/s
+
+
+
+
+running (00m04.2s), 000/800 VUs, 20000 complete and 0 interrupted iterations
+exact_requests ✓ [ 100% ] 800 VUs  00m04.2s/10m0s  20000/20000 shared iters
